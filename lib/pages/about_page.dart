@@ -1,0 +1,148 @@
+import 'package:flutter/material.dart';
+
+import '../data/metrics.dart';
+import '../models/sector.dart';
+import '../ui/palette.dart';
+import '../widgets/back_chevron.dart';
+
+/// About / data source tab: attribution, definitions, and credits.
+///
+/// Covers the citation requirement — dataset, units, and method are all
+/// stated here in plain language.
+class AboutPage extends StatelessWidget {
+  const AboutPage({super.key, this.onBack});
+
+  /// Asks the shell to return to the Home tab; null when the page is
+  /// shown outside the tab shell.
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    // SafeArea keeps the title clear of the status bar.
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Row(
+            children: [
+              BackChevron(onTap: () => _back(context)),
+              const SizedBox(width: 6),
+              const Text(
+                'About',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Palette.ink,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _Section(
+            title: 'Data source',
+            body:
+                'All GDP figures come from the official data.gov.my '
+                'catalogue — dataset gdp_state_real_supply (DOSM, "Annual '
+                'Real GDP by State & Economic Sector"). Values are RM '
+                'million at constant 2015 prices. The app bundles a '
+                'snapshot of the dataset so every screen works offline.',
+          ),
+          const _Section(
+            title: 'What is "real GDP"?',
+            body:
+                'Real (constant-price) GDP removes the effect of '
+                'inflation, so year-to-year changes reflect actual output '
+                'growth, not price changes. All growth rates in this app '
+                'are real year-on-year growth.',
+          ),
+          _Section(title: 'What is HHI?', body: _hhiExplainer()),
+          const _Section(
+            title: 'Policies',
+            body:
+                'Policy information is curated from official government '
+                'sources; every policy card links to its source. Policy '
+                'analysis shows an association between a policy year and '
+                'sector growth — not a proven causal effect.',
+          ),
+          const _Section(
+            title: 'Team',
+            body:
+                'BMIT2073 group project — members: LYZ, FQW, LKY, LTW (TODO: change to full name). '
+                'Theme: SDG 9 · Industry, Innovation and Infrastructure.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Pops when pushed as a route, otherwise hands control to the shell.
+  void _back(BuildContext context) {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      onBack?.call();
+    }
+  }
+}
+
+/// One titled text block, kept simple on purpose.
+/// Plain-language HHI explainer.
+///
+/// The numbers are read from [HhiBands] and the sector list rather than
+/// written out, so this text always agrees with the badges the ranking
+/// screen shows.
+String _hhiExplainer() {
+  final sectorCount = Sector.values.length;
+  final floor = HhiBands.floor.toStringAsFixed(3);
+  final balanced = HhiBands.balanced.toStringAsFixed(3);
+  final risk = HhiBands.risk.toStringAsFixed(3);
+  return 'The Herfindahl–Hirschman Index measures how concentrated a '
+      'state’s economy is: the sum of squared sector shares. Across '
+      '$sectorCount sectors it can only run from $floor (an even split) to '
+      '1.000 (one sector takes everything) — it never reaches 0. This '
+      'app calls a state balanced below $balanced and concentrated above '
+      '$risk.';
+}
+
+class _Section extends StatelessWidget {
+  const _Section({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Palette.ink,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              body,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Palette.muted,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
