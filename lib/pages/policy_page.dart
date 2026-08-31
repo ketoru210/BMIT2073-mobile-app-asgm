@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/metrics.dart';
+import '../data/policy_metrics.dart';
 import '../models/policy_record.dart';
 import '../models/sector.dart';
 import '../state/app_state.dart';

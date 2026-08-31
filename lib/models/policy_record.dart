@@ -1,7 +1,7 @@
 import 'sector.dart';
 
 /// One entry of the bundled policy catalogue
-/// (assets/policy_catalogue.jsonmd appendix A).
+/// (assets/policy_catalogue.json, plan_v2.md appendix A).
 ///
 /// Policies are static, curated, and every entry carries its official
 /// source URL — the analysis only ever claims association, not causation.
