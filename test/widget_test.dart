@@ -16,7 +16,7 @@ void main() {
     final app = AppState(
       repository: GdpRepository(),
       policies: const [],
-      users: UserRepository(),
+      users: LocalUserRepository(),
     );
     // Asset loading and shared_preferences do real async I/O, which the
     // fake-async test zone blocks on — run init in the real async zone.

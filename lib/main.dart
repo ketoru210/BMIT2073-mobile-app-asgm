@@ -22,7 +22,7 @@ Future<void> main() async {
   final app = AppState(
     repository: GdpRepository(),
     policies: await _loadPolicies(),
-    users: UserRepository(),
+    users: LocalUserRepository(),
   );
   await app.init();
 
