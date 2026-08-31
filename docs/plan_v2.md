@@ -236,7 +236,70 @@ abstract class GrantAdminRepository {
 ```
 
 - **两个文件不合并。** 同一个文件两个人写，`git blame` 会糊掉，而 commit 归属是本作业的评分证据。
-- A 需同时提供 `LocalGrantRepository` 桩（含**假角色开关**），让 C 在 B 的 Supabase 就绪前自测两种视角。
+- 桩已落地于 `local_grant_repository.dart`（`LocalGrantRepository` + `LocalGrantAdminRepository`，共享一个本地存储）。**假角色开关在 `LocalUserRepository.setFakeRole()`**——角色是用户属性，不在 grant 侧；C 用它在 B 的 Supabase 就绪前自测用户 / 管理员两种视角。
+
+### Grant / GrantApplication — 冻结字段
+
+```dart
+enum UserRole { user, admin }
+enum ApplicationStatus { pending, approved, rejected }
+
+class Grant {
+  final String id;
+  final String name;
+  final String agency;
+  final String? state;      // null = 全国通用
+  final Sector? sector;     // null = 不限部门
+  final int? maxAmountRm;   // null = 无上限，单位实际令吉（不是 RM 百万）
+  final DateTime deadline;
+  final String sourceUrl;
+  final String criteriaNote; // 真实计划名 + 一句「演示自定条件，非官方标准」
+  final String description;
+  final String publishedBy;
+  final DateTime publishedAt;
+  final bool isOpen;
+}
+
+class GrantApplication {
+  final String id;
+  final String grantId;
+  final String userId;
+  final String projectName;
+  final String state;
+  final Sector sector;
+  final int requestedAmountRm;
+  final String note;
+  final ApplicationStatus status;
+  final DateTime submittedAt;
+  final DateTime? decidedAt;   // 待审批时为 null
+}
+```
+
+- **criteria 结构化**：`state` / `sector` / `maxAmountRm` 三轴，`null` = 该轴不限。C 的资格判定据此逐条产出「符合 / 不符 + 原因」，这是它的数据处理证据。
+- **`available()` 的 null 语义**：入参 `null` = 不按该轴过滤；grant 字段 `null` = 该轴不限，即 `grant.state == null || grant.state == 请求州`（sector 同理）。B 建表与 C 写查询必须用同一语义，否则是静默错。
+- **金额单位陷阱**：`maxAmountRm` / `requestedAmountRm` 是**实际令吉**，而 GDP 原始值单位是 RM 百万。不得复用 `RM 98.4b` 那个按百万输入的格式化函数，否则差 6 个数量级。
+
+### 政策目录远端格式（给 D 的 F8）
+
+托管地址（GitHub raw 即可）返回：
+
+```json
+{ "version": 1, "policies": [ { ...PolicyRecord 字段... } ] }
+```
+
+- 比对远端 `version` 与本地 asset 里的 `version`；远端更新则用远端并缓存，否则用 asset；失败静默回退。
+- 本地 asset `policy_catalogue.json` 也改成同构 `{version, policies[]}`——D 在 F8 改，A 不碰。
+
+### 导出列定义（给 D 的 F9）
+
+结果集重塑为扁平表，列序固定，四人一致：
+
+```
+year, state, sector, value_rm_mil, yoy_pct, share_pct
+```
+
+- `value_rm_mil` = RM 百万（与数据同单位）；`yoy_pct` / `share_pct` 为百分比数值（如 `44.3`，不带 `%` 符号）。
+- CSV 带 UTF-8 BOM（Excel 中文不乱码）；PDF 页脚放数据来源与免责声明。
 
 ### 页面契约
 

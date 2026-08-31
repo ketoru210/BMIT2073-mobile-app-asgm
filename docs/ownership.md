@@ -81,8 +81,9 @@ lib/
 │   ├── policy_source.dart             政策目录远端 + 回退           新   D
 │   ├── user_repository.dart           本地实现                           B
 │   ├── supabase_user_repository.dart  云端实现 + 角色               新   B
-│   ├── grant_repository.dart          资助读取与申请                新   C
-│   └── grant_admin_repository.dart    资助发布与审批                新   B
+│   ├── grant_repository.dart          资助读取与申请（接口）      新   C
+│   ├── grant_admin_repository.dart    资助发布与审批（接口）      新   B
+│   └── local_grant_repository.dart    离线桩 + 共享存储             A
 ├── state/
 │   └── app_state.dart                 当前选择 + 数据集                  A
 ├── pages/
@@ -102,7 +103,8 @@ lib/
 └── widgets/                           11 个共享组件                      A
 assets/
 ├── gdp_snapshot.json                  打包基准数据                       A
-└── policy_catalogue.json              政策目录本地回退                   D
+├── policy_catalogue.json              政策目录本地回退                   D
+└── grants_seed.json                   资助种子（离线桩用）               A
 ```
 
 ---
