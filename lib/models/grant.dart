@@ -133,6 +133,55 @@ class GrantApplication {
   /// Set once an admin decides; `null` while [status] is pending.
   final DateTime? decidedAt;
 
+  /// A not-yet-submitted application, as the form builds it.
+  ///
+  /// [id] is left empty on purpose: the repository assigns it on insert,
+  /// mirroring Supabase, where the `id` column has a server-side default.
+  /// Status and timestamp are not the form's to choose either.
+  factory GrantApplication.draft({
+    required String grantId,
+    required String userId,
+    required String projectName,
+    required String state,
+    required Sector sector,
+    required int requestedAmountRm,
+    required String note,
+  }) {
+    return GrantApplication(
+      id: '',
+      grantId: grantId,
+      userId: userId,
+      projectName: projectName,
+      state: state,
+      sector: sector,
+      requestedAmountRm: requestedAmountRm,
+      note: note,
+      status: ApplicationStatus.pending,
+      submittedAt: DateTime.now(),
+      decidedAt: null,
+    );
+  }
+
+  GrantApplication copyWith({
+    String? id,
+    ApplicationStatus? status,
+    DateTime? decidedAt,
+  }) {
+    return GrantApplication(
+      id: id ?? this.id,
+      grantId: grantId,
+      userId: userId,
+      projectName: projectName,
+      state: state,
+      sector: sector,
+      requestedAmountRm: requestedAmountRm,
+      note: note,
+      status: status ?? this.status,
+      submittedAt: submittedAt,
+      decidedAt: decidedAt ?? this.decidedAt,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

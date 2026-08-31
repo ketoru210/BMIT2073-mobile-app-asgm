@@ -223,8 +223,8 @@ abstract class UserRepository {
 // grant_repository.dart —— 用户端（C）
 abstract class GrantRepository {
   Future<List<Grant>> available({String? state, Sector? sector});
-  Future<void> apply(GrantApplication application);
-  Future<List<GrantApplication>> myApplications();
+  Future<void> apply(GrantApplication application);  // 用 GrantApplication.draft() 构造
+  Future<List<GrantApplication>> myApplications();   // 只含本人，按提交时间倒序
 }
 
 // grant_admin_repository.dart —— 管理端（B）
@@ -236,6 +236,12 @@ abstract class GrantAdminRepository {
 ```
 
 - **两个文件不合并。** 同一个文件两个人写，`git blame` 会糊掉，而 commit 归属是本作业的评分证据。
+三条定案的行为规则（写在接口注释里，两端必须一致）：
+
+1. **`available()` 只返回 `isOpen == true` 且未过 `deadline` 的资助。** 截止判定放在仓库层，不留给页面——否则管理端和用户端会各判各的。
+2. **`myApplications()` 只返回本人的申请。** 本地桩虽然只有一个用户，也照样按 `userId` 过滤，这样换成 Supabase（由 RLS 做同样的事）时界面行为不变。
+3. **申请 id 由仓库层生成，不由表单决定。** C 用 `GrantApplication.draft()` 构造（不传 id / status / submittedAt），`apply()` 落库时赋 id——对应 Supabase 里 `id` 列的服务端默认值。
+
 - 桩已落地于 `local_grant_repository.dart`（`LocalGrantRepository` + `LocalGrantAdminRepository`，共享一个本地存储）。**假角色开关在 `LocalUserRepository.setFakeRole()`**——角色是用户属性，不在 grant 侧；C 用它在 B 的 Supabase 就绪前自测用户 / 管理员两种视角。
 
 ### Grant / GrantApplication — 冻结字段
