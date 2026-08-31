@@ -1,30 +1,32 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Smoke test: the app boots with the bundled snapshot and shows the
+// home tab. Also exercises the repository's asset loading and join.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:bmit2073_asgm/data/gdp_repository.dart';
+import 'package:bmit2073_asgm/data/user_repository.dart';
 import 'package:bmit2073_asgm/main.dart';
+import 'package:bmit2073_asgm/state/app_state.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('app boots and shows the home screen', (tester) async {
+    SharedPreferences.setMockInitialValues({});
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final app = AppState(
+      repository: GdpRepository(),
+      policies: const [],
+      users: UserRepository(),
+    );
+    // Asset loading and shared_preferences do real async I/O, which the
+    // fake-async test zone blocks on — run init in the real async zone.
+    await tester.runAsync(app.init);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpWidget(GdpAnalyzerApp(appState: app));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // home hero CTA (docs/ui_spec.md §1.2)
+    expect(find.text('Ready to analyze?'), findsOneWidget);
+    expect(find.text('Start Analysis'), findsOneWidget);
   });
 }

@@ -1,122 +1,153 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-void main() {
-  runApp(const MyApp());
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemNavigator, rootBundle;
+import 'package:provider/provider.dart';
+
+import 'data/gdp_repository.dart';
+import 'data/user_repository.dart';
+import 'models/policy_record.dart';
+import 'pages/about_page.dart';
+import 'pages/filter_page.dart';
+import 'pages/home_page.dart';
+import 'state/app_state.dart';
+import 'ui/palette.dart';
+import 'widgets/bottom_nav.dart';
+
+/// Entry point: loads the bundled dataset + policy catalogue, wires the
+/// provider, and launches the tab shell.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final app = AppState(
+    repository: GdpRepository(),
+    policies: await _loadPolicies(),
+    users: UserRepository(),
+  );
+  await app.init();
+
+  runApp(GdpAnalyzerApp(appState: app));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+/// Reads assets/policy_catalogue.json once at startup.
+Future<List<PolicyRecord>> _loadPolicies() async {
+  final raw = await rootBundle.loadString('assets/policy_catalogue.json');
+  final list = jsonDecode(raw) as List<dynamic>;
+  return list.cast<Map<String, dynamic>>().map(PolicyRecord.fromJson).toList();
+}
 
-  // This widget is the root of your application.
+class GdpAnalyzerApp extends StatelessWidget {
+  const GdpAnalyzerApp({super.key, required this.appState});
+
+  final AppState appState;
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+    return ChangeNotifierProvider(
+      create: (context) => appState,
+      child: MaterialApp(
+        title: 'State GDP Analyzer',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Palette.primary),
+          scaffoldBackgroundColor: Palette.ground,
+        ),
+        home: const HomeShell(),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+/// Bottom tab shell: Home / Analyze / About.
+///
+/// [IndexedStack] keeps each tab alive, so filter selections survive
+/// tab switches. The Analyze tab is its own [Navigator] rooted at the
+/// filter page; result pages push on top of it,
+/// so the shell-level bottom nav stays visible on every screen.
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomeShell> createState() => _HomeShellState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomeShellState extends State<HomeShell> {
+  int _index = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  /// Lets the shell drive the Analyze tab's history (system back,
+  /// and the filter page's own back arrow).
+  final GlobalKey<NavigatorState> _analyzeNav = GlobalKey<NavigatorState>();
+
+  void _selectTab(int index) => setState(() => _index = index);
+
+  /// True while the Analyze tab has a result page stacked on the filter.
+  bool get _analyzeCanPop =>
+      _index == 1 && (_analyzeNav.currentState?.canPop() ?? false);
+
+  /// System back: unwind the Analyze stack first, then fall back to the
+  /// Home tab. The root navigator is never popped, so the screen is
+  /// never left blank.
+  void _handleSystemBack() {
+    if (_analyzeCanPop) {
+      _analyzeNav.currentState!.pop();
+      return;
+    }
+    if (_index != 0) {
+      _selectTab(0);
+      return;
+    }
+    SystemNavigator.pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleSystemBack();
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _index,
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            HomePage(onStartAnalysis: () => _selectTab(1)),
+            AnalyzeNavigator(
+              navigatorKey: _analyzeNav,
+              onExit: () => _selectTab(0),
             ),
+            AboutPage(onBack: () => _selectTab(0)),
           ],
         ),
+        bottomNavigationBar: BottomNav(
+          activeIndex: _index,
+          onSelect: _selectTab,
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+    );
+  }
+}
+
+/// Nested navigator for the Analyze tab: root is the filter page and
+/// result pages push on top, so the shell's bottom nav stays visible.
+class AnalyzeNavigator extends StatelessWidget {
+  const AnalyzeNavigator({
+    super.key,
+    required this.navigatorKey,
+    required this.onExit,
+  });
+
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  /// Called when the filter page (this navigator's root) is backed out
+  /// of; the shell then returns to the Home tab.
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      key: navigatorKey,
+      onGenerateRoute: (settings) =>
+          MaterialPageRoute<void>(builder: (_) => FilterPage(onExit: onExit)),
     );
   }
 }
