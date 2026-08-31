@@ -99,7 +99,7 @@
 
 - 数据：`policy_catalogue.json`，字段 `policyId, name, abbreviation, effectiveYear, targetSectors[], summary, sourceUrl, version`。
 - 交互：选一条政策 → 目标部门的逐年增长线图，`effectiveYear` 处画竖线标注 → 对比生效前 3 年 vs 后 3 年的年均增速（**跳过生效当年**，政策见效需要时间且当年噪声大）→ 一行结论。
-- **数据窗口注意事项**：数据范围 2015–2025。Industry4WRD（2018）前后各 3 年充足；LSS（2016）只有 1 年前置 → 用非对称窗口（前 1 后 3）；NIMP / NETR / 稀土禁令（均 2023）后窗口仅 2 年，UI 上注明；NSS（2024）后窗口仅 1 年 → 降级为"画标注线 + 政策后数据尚不足，仅展示趋势"的诚实说明（walkthrough 严谨加分点）。
+- **数据窗口注意事项**：数据范围 2015–2025。Industry4WRD（2018）前后各 3 年充足；**LSS（2016）没有前置窗口**——2015 是首年、算不出增速，2016 自身的增速又因是生效年被跳过，所以 `beforeAvg` 为 null，UI 只能画标注线加说明（`test/policy_window_test.dart` 钉住这条）；NIMP / NETR / 稀土禁令（均 2023）后窗口仅 2 年，UI 上注明；NSS（2024）后窗口仅 1 年 → 降级为"画标注线 + 政策后数据尚不足，仅展示趋势"的诚实说明（walkthrough 严谨加分点）。
 - 数据完全复用 `GdpRepository` 现有查询，零新查询接口。
 
 ### 5.2 User module（Supabase + 离线后门）

@@ -75,9 +75,9 @@ lib/
 ├── data/
 │   ├── api_client.dart                data.gov.my GET + 解析        新   A
 │   ├── gdp_repository.dart            仓库 + 缓存/回退                   A
-│   ├── metrics.dart                   HHI · 全国汇总 · 占比               A
+│   ├── metrics.dart                   HHI · 全国总量 · 占比               A
 │   ├── sector_mapping.dart            原始代码 → Sector，唯一映射文件     A
-│   ├── policy_metrics.dart            政策前后窗口   从 metrics 拆出      D
+│   ├── policy_metrics.dart            政策窗口 + 全国分部门序列   已拆   D
 │   ├── policy_source.dart             政策目录远端 + 回退           新   D
 │   ├── user_repository.dart           本地实现                           B
 │   ├── supabase_user_repository.dart  云端实现 + 角色               新   B

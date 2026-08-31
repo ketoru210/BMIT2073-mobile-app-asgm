@@ -158,9 +158,11 @@ F9 导出 → F5 压缩成一屏 → F4 的收藏合并降级为「登录后只�
 
 **目标**：让 D 的数据处理在 `git blame` 里是 D 的名字。
 
-**步骤**：把 `metrics.dart` 里的 `growthAroundPolicy` / `PolicyGrowth` 移到新文件 `lib/data/policy_metrics.dart`，改 `policy_page.dart` 的 import。A 只做搬运，之后所有改动归 D。
+**步骤**：把 `metrics.dart` 里的 `PolicyGrowth` / `growthAroundPolicy` / `nationalYoY` / `nationalSums` 移到新文件 `lib/data/policy_metrics.dart`，改 `policy_page.dart` 的 import。A 只做搬运，之后所有改动归 D。
 
-**验收**：`flutter analyze` 0 issue，Policy Impact 页表现不变。
+> 后两个也一起搬，是因为它们**只有政策这条路径在用**（`nationalSums` 全项目零外部调用，`nationalYoY` 只被 `policy_page` 调）。留在 `metrics.dart` 的话，D 每次改政策逻辑都会碰到 A 名下的文件，`git blame` 依旧糊——这正是 F7 要解决的问题。A 保留的「全国汇总」证据是 `nationalTotal` / `nationalShare`。
+
+**验收**：`flutter analyze` 0 issue，Policy Impact 页表现不变，`test/policy_window_test.dart` 全绿。
 
 ---
 
