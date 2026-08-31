@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,12 +8,14 @@ import '../models/grant.dart';
 import '../models/sector.dart';
 import 'grant_admin_repository.dart';
 import 'grant_repository.dart';
+import 'user_repository.dart';
 
 /// Offline stub of the grants backend, used until Supabase is wired in.
 ///
-/// Both sides share one [LocalGrantStore], so publishing as admin and
-/// applying as user hit the same data. Owned by A as part of the F2
-/// contract handoff; C and B later add the Supabase implementations that
+/// The user and admin sides each hold their own [LocalGrantStore], but both
+/// read and write the same SharedPreferences keys — so publishing as admin
+/// and applying as user still hit the same data. Owned by A as part of the
+/// F2 contract handoff; C and B later add the Supabase implementations that
 /// keep these interfaces.
 class LocalGrantRepository implements GrantRepository {
   final LocalGrantStore _store = LocalGrantStore();
@@ -20,8 +23,10 @@ class LocalGrantRepository implements GrantRepository {
   @override
   Future<List<Grant>> available({String? state, Sector? sector}) async {
     final grants = await _store.loadGrants();
+    final now = DateTime.now();
     return grants.where((g) {
       if (!g.isOpen) return false;
+      if (g.deadline.isBefore(now)) return false;
       if (state != null && g.state != null && g.state != state) return false;
       if (sector != null && g.sector != null && g.sector != sector) {
         return false;
@@ -33,15 +38,21 @@ class LocalGrantRepository implements GrantRepository {
   @override
   Future<void> apply(GrantApplication application) async {
     final apps = await _store.loadApplications();
-    apps.add(application);
+    apps.add(application.copyWith(id: _store.newId()));
     await _store.saveApplications(apps);
   }
 
   @override
   Future<List<GrantApplication>> myApplications() async {
-    // A single offline user, so "mine" is every application. The Supabase
-    // implementation narrows this to `user_id = auth.uid()`.
-    return _store.loadApplications();
+    final apps = await _store.loadApplications();
+    // Filtered even though the offline user is the only one, so that
+    // swapping in the Supabase implementation (where RLS does this) does
+    // not change what the screen shows.
+    final mine = apps
+        .where((a) => a.userId == LocalUserRepository.localUserId)
+        .toList();
+    mine.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+    return mine;
   }
 }
 
@@ -68,20 +79,7 @@ class LocalGrantAdminRepository implements GrantAdminRepository {
     final apps = await _store.loadApplications();
     final i = apps.indexWhere((a) => a.id == applicationId);
     if (i == -1) return;
-    final old = apps[i];
-    apps[i] = GrantApplication(
-      id: old.id,
-      grantId: old.grantId,
-      userId: old.userId,
-      projectName: old.projectName,
-      state: old.state,
-      sector: old.sector,
-      requestedAmountRm: old.requestedAmountRm,
-      note: old.note,
-      status: status,
-      submittedAt: old.submittedAt,
-      decidedAt: DateTime.now(),
-    );
+    apps[i] = apps[i].copyWith(status: status, decidedAt: DateTime.now());
     await _store.saveApplications(apps);
   }
 }
@@ -95,6 +93,8 @@ class LocalGrantStore {
   static const _grantsKey = 'grant.grants';
   static const _applicationsKey = 'grant.applications';
   static const _seededKey = 'grant.seeded';
+
+  final Random _random = Random();
 
   SharedPreferences? _cache;
 
@@ -139,6 +139,15 @@ class LocalGrantStore {
         .cast<Map<String, dynamic>>()
         .map(GrantApplication.fromJson)
         .toList();
+  }
+
+  /// Ids are assigned here rather than by the form, mirroring Supabase's
+  /// server-side default. Time-ordered prefix plus randomness, so ids stay
+  /// unique even when two applications are submitted in the same tick.
+  String newId() {
+    final stamp = DateTime.now().microsecondsSinceEpoch.toRadixString(16);
+    final noise = _random.nextInt(0xffffff).toRadixString(16).padLeft(6, '0');
+    return '$stamp-$noise';
   }
 
   Future<void> saveApplications(List<GrantApplication> apps) async {
