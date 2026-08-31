@@ -1,0 +1,74 @@
+[
+  {
+    "policyId": "nimp2030",
+    "name": "New Industrial Master Plan 2030",
+    "abbreviation": "NIMP 2030",
+    "effectiveYear": 2023,
+    "targetSectors": ["manufacturing"],
+    "summary": "Malaysia's fourth industrial master plan (2023-2030): mission-based strategy to raise manufacturing value-added via economic complexity, technology adoption and net-zero push.",
+    "sourceUrl": "https://www.pmo.gov.my/en/speeches-en/speech-by-pm-anwar-for-the-launch-of-the-new-industrial-master-plan-2030-nimp-2030/"
+  },
+  {
+    "policyId": "nss2024",
+    "name": "National Semiconductor Strategy",
+    "abbreviation": "NSS",
+    "effectiveYear": 2024,
+    "targetSectors": ["manufacturing"],
+    "summary": "RM500bn-investment, three-phase strategy to move Malaysia up the semiconductor value chain - IC design, advanced packaging, wafer fabrication and equipment.",
+    "sourceUrl": "https://www.mida.gov.my/mida-news/govt-allocates-rm25bil-to-operationalise-national-semiconductor-strategy/"
+  },
+  {
+    "policyId": "netr2023",
+    "name": "National Energy Transition Roadmap",
+    "abbreviation": "NETR",
+    "effectiveYear": 2023,
+    "targetSectors": ["services"],
+    "summary": "Roadmap to net-zero by 2050 across six levers: renewables, energy efficiency, hydrogen, bioenergy, green mobility and CCUS.",
+    "sourceUrl": "https://ekonomi.gov.my/sites/default/files/2023-08/National%20Energy%20Transition%20Roadmap.pdf"
+  },
+  {
+    "policyId": "lss2016",
+    "name": "Large Scale Solar programme",
+    "abbreviation": "LSS",
+    "effectiveYear": 2016,
+    "targetSectors": ["services"],
+    "summary": "Utility-scale solar PV competitive-bidding programme run by the Energy Commission that replaced feed-in-tariff allocation to drive down renewable costs.",
+    "sourceUrl": "https://www.st.gov.my/sourcing/large-scale-solar-photovoltaic"
+  },
+  {
+    "policyId": "reeban2023",
+    "name": "Rare Earth Raw Material Export Ban",
+    "abbreviation": "REE Ban",
+    "effectiveYear": 2023,
+    "targetSectors": ["mining"],
+    "summary": "Ban on exporting rare earth raw materials, announced in the 12MP mid-term review, to force domestic downstream processing and capture the full value chain.",
+    "sourceUrl": "https://www.freemalaysiatoday.com/category/nation/2023/09/11/govt-to-ban-exporting-rare-earth-raw-materials"
+  },
+  {
+    "policyId": "dakn2030",
+    "name": "National Agricommodity Policy 2021-2030",
+    "abbreviation": "DAKN 2030",
+    "effectiveYear": 2021,
+    "targetSectors": ["agriculture"],
+    "summary": "10-year policy for eight commodities (oil palm, rubber, timber, cocoa, pepper, kenaf, biomass, biofuel) built on sustainability, productivity and value generation.",
+    "sourceUrl": "https://www.kpk.gov.my/kpk/images/mpi_penerbitan/dakn/dakn2030-buku-bm/flipbook.pdf"
+  },
+  {
+    "policyId": "industry4wrd2018",
+    "name": "Industry4WRD: National Policy on Industry 4.0",
+    "abbreviation": "Industry4WRD",
+    "effectiveYear": 2018,
+    "targetSectors": ["manufacturing"],
+    "summary": "National IR4.0 policy to transform manufacturing and related services into a smart, digitally driven industry.",
+    "sourceUrl": "https://www.miti.gov.my/index.php/pages/view/7215"
+  },
+  {
+    "policyId": "construction4_0_2021",
+    "name": "Construction 4.0 Strategic Plan 2021-2025",
+    "abbreviation": "Construction 4.0",
+    "effectiveYear": 2021,
+    "targetSectors": ["construction"],
+    "summary": "CIDB five-year blueprint for the construction industry's digital transformation - BIM, IBS/prefabrication and smart-factory technologies.",
+    "sourceUrl": "https://www.cidb.gov.my/eng/construction-4-0-strategic-plan-2021-2025-alters-the-industry-game/"
+  }
+]
