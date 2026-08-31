@@ -21,6 +21,10 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
+    # This rule pushes the null-aware element syntax (`[?value]`), which is
+    # newer than the collection-if syntax used throughout this project.
+    # Keeping one style makes the code easier to read and explain.
+    use_null_aware_elements: false
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 
