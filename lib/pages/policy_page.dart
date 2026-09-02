@@ -54,6 +54,15 @@ class PolicyPage extends StatelessWidget {
               'Tap one to see the before/after picture.',
               style: TextStyle(fontSize: 12, color: Palette.muted),
             ),
+            const SizedBox(height: 4),
+            Text(
+              app.catalogue.label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Palette.primary,
+              ),
+            ),
             const SizedBox(height: 12),
             for (final policy in app.policies) _PolicyCard(policy: policy),
           ],
