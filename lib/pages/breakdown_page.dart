@@ -2,15 +2,19 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/csv_export.dart';
 import '../data/gdp_repository.dart';
 import '../data/metrics.dart';
+import '../models/grant.dart';
 import '../models/sector.dart';
 import '../state/app_state.dart';
 import '../ui/palette.dart';
 import '../widgets/app_card.dart';
 import '../widgets/dropdown_card.dart';
 import '../widgets/hero_band.dart';
+import '../widgets/icon_chip.dart';
 import '../widgets/insight_strip.dart';
+import 'grants/browse_page.dart';
 
 /// Mode 2 · Sector Breakdown: one state, one year — KPI, a donut of
 /// every sector, and two insight lines.
@@ -41,6 +45,7 @@ class BreakdownPage extends StatelessWidget {
                   onTap: () => _pickYear(context, app),
                 ),
                 footer: const _CompositionChip(),
+                onExport: () => _exportCsv(context, app),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -73,6 +78,17 @@ class BreakdownPage extends StatelessWidget {
       ),
     );
     if (picked != null) app.selectYear(picked);
+  }
+
+  /// Shares the current selection as CSV; a SnackBar covers failure so
+  /// the export never crashes the page.
+  Future<void> _exportCsv(BuildContext context, AppState app) async {
+    final ok = await CsvExport.share(app.repository, app.generate());
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not share the CSV export.')),
+      );
+    }
   }
 }
 
@@ -317,14 +333,39 @@ class _Sparkline extends StatelessWidget {
 
 /// Donut card: ~20-thick ring with the year in the centre and a legend
 /// of every sector that has a value this year.
-class _DonutCard extends StatelessWidget {
+///
+/// Stateful so a legend row can be tapped to "drill down" into that one
+/// sector — the drill-down detail is where the F6 grants hook card
+/// lives, per the feature plan's sector-breakdown entry point.
+class _DonutCard extends StatefulWidget {
   const _DonutCard({required this.state, required this.year});
 
   final String state;
   final int year;
 
   @override
+  State<_DonutCard> createState() => _DonutCardState();
+}
+
+class _DonutCardState extends State<_DonutCard> {
+  /// The legend row currently drilled into, if any. Page-local UI state,
+  /// not part of AppState — it resets whenever the state/year underneath
+  /// it changes, so a stale sector never lingers after the user picks a
+  /// different state or year.
+  Sector? _drilled;
+
+  @override
+  void didUpdateWidget(covariant _DonutCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state || oldWidget.year != widget.year) {
+      _drilled = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final year = widget.year;
     return Consumer<AppState>(
       builder: (context, app, child) {
         final repo = app.repository;
@@ -408,6 +449,10 @@ class _DonutCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (_drilled != null) ...[
+                const SizedBox(height: 14),
+                _GrantsHookCard(state: state, sector: _drilled!),
+              ],
             ],
           ),
         );
@@ -416,41 +461,166 @@ class _DonutCard extends StatelessWidget {
   }
 
   Widget _legendRow(GdpRepository repo, double? total, Sector sector) {
-    final value = repo.sectorValue(state: state, sector: sector, year: year);
+    final value = repo.sectorValue(
+      state: widget.state,
+      sector: sector,
+      year: widget.year,
+    );
     final share = total == null || total <= 0 || value == null
         ? null
         : value / total * 100;
-    return SizedBox(
-      height: 18,
-      child: Row(
-        children: [
-          Container(
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(
-              color: Palette.sectorColors[sector],
-              shape: BoxShape.circle,
+    final selected = _drilled == sector;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _drilled = selected ? null : sector),
+      child: Container(
+        height: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: selected ? Palette.chipPeri : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: Palette.sectorColors[sector],
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              sector.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11.5, color: Palette.body),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                sector.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11.5, color: Palette.body),
+              ),
             ),
-          ),
-          Text(
-            share == null ? '—' : '${share.toStringAsFixed(0)}%',
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: Palette.ink,
+            Text(
+              share == null ? '—' : '${share.toStringAsFixed(0)}%',
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: Palette.ink,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// F6 hook card: "N grants available" for the drilled-down (state,
+/// sector) pair, tapping through to the filtered grants browse page.
+///
+/// The count always comes from a real [GrantRepository.available] call
+/// — never a literal — per the feature plan's ban on hardcoded numbers.
+class _GrantsHookCard extends StatefulWidget {
+  const _GrantsHookCard({required this.state, required this.sector});
+
+  final String state;
+  final Sector sector;
+
+  @override
+  State<_GrantsHookCard> createState() => _GrantsHookCardState();
+}
+
+class _GrantsHookCardState extends State<_GrantsHookCard> {
+  late Future<List<Grant>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _GrantsHookCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state || oldWidget.sector != widget.sector) {
+      _load();
+    }
+  }
+
+  void _load() {
+    _future = context.read<AppState>().grants.available(
+      state: widget.state,
+      sector: widget.sector,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Grant>>(
+      future: _future,
+      builder: (context, snapshot) {
+        final count = snapshot.data?.length;
+        return AppCard(
+          radius: 16,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  BrowsePage(state: widget.state, sector: widget.sector),
+            ),
+          ),
+          child: SizedBox(
+            height: 60,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  const IconChip(
+                    size: 36,
+                    radius: 12,
+                    iconSize: 17,
+                    background: Palette.chipGreenBg,
+                    icon: Icon(
+                      Icons.volunteer_activism_rounded,
+                      color: Palette.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          count == null
+                              ? 'Checking grants…'
+                              : '$count grant${count == 1 ? '' : 's'} available',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Palette.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${widget.state} · ${widget.sector.label}',
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            color: Palette.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: Palette.ghost,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
