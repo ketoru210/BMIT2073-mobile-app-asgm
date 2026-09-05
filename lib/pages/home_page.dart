@@ -11,10 +11,15 @@ import '../widgets/icon_chip.dart';
 
 /// Home tab: greeting, hero CTA, stat cards and quick analysis shortcuts.
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.onStartAnalysis});
+  const HomePage({
+    super.key,
+    required this.onStartAnalysis,
+    required this.onProfile,
+  });
 
   /// Switches the shell to the Analyze tab.
   final VoidCallback onStartAnalysis;
+  final VoidCallback onProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +32,9 @@ class HomePage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
             children: [
               const SizedBox(height: 10),
-              const _Greeting(),
+              _Greeting(
+                onProfile: onProfile,
+              ),
               const SizedBox(height: 20),
               _HeroCta(
                 onTap: onStartAnalysis,
@@ -99,7 +106,11 @@ class HomePage extends StatelessWidget {
 
 /// "Good morning," + "Ready to analyze?" with the avatar on the right.
 class _Greeting extends StatelessWidget {
-  const _Greeting();
+  const _Greeting({
+    required this.onProfile,
+  });
+
+  final VoidCallback onProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -125,17 +136,16 @@ class _Greeting extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: Palette.chipPeri,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.person_outline_rounded,
-            color: Palette.primary,
-            size: 24,
+        GestureDetector(
+          onTap: onProfile,
+          child: const CircleAvatar(
+            radius: 20,
+            backgroundColor: Palette.chipPeri,
+            child: Icon(
+              Icons.person_outline_rounded,
+              color: Palette.periText,
+              size: 22,
+            ),
           ),
         ),
       ],
