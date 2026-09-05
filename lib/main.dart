@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemNavigator, rootBundle;
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/gdp_repository.dart';
-import 'data/user_repository.dart';
+import 'data/supabase_user_repository.dart';
 import 'models/policy_record.dart';
 import 'pages/about_page.dart';
 import 'pages/filter_page.dart';
+import 'pages/profile_page.dart';
 import 'pages/home_page.dart';
 import 'state/app_state.dart';
 import 'ui/palette.dart';
@@ -19,10 +21,15 @@ import 'widgets/bottom_nav.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Supabase.initialize(
+    url: 'https://hlkakrrlahounqqpukwi.supabase.co',
+    publishableKey: 'sb_publishable_sbGp4hVepEIOZN3hYxgXJg_PzcQaG_C',
+  );
+
   final app = AppState(
     repository: GdpRepository(),
     policies: await _loadPolicies(),
-    users: LocalUserRepository(),
+    users: SupabaseUserRepository(),
   );
   await app.init();
 
@@ -110,7 +117,16 @@ class _HomeShellState extends State<HomeShell> {
         body: IndexedStack(
           index: _index,
           children: [
-            HomePage(onStartAnalysis: () => _selectTab(1)),
+            HomePage(
+                onStartAnalysis: () => _selectTab(1),
+                onProfile: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ProfilePage(),
+                    ),
+                  );
+                },
+            ),
             AnalyzeNavigator(
               navigatorKey: _analyzeNav,
               onExit: () => _selectTab(0),
