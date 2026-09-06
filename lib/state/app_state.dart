@@ -188,6 +188,13 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Repaints after the account screens change profile data on [users].
+  ///
+  /// That write happens on the repository, not here, so this state has no
+  /// way to notice it; the screen calls this instead of reaching for the
+  /// protected [notifyListeners].
+  void profileChanged() => notifyListeners();
+
   /// Saves the current selection as a favourite and refreshes the list.
   Future<void> saveCurrentFavorite() async {
     final label = _describeSelection();
