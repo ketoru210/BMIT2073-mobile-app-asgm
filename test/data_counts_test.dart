@@ -23,11 +23,16 @@ void main() {
   test('the snapshot loads the full year range', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     final repo = GdpRepository();
+    // load() is the bundled baseline by design, so these counts can
+    // never start depending on the network.
     await repo.load();
 
     expect(repo.years.length, 11);
     expect(repo.years.first, 2015);
     // the default year follows this, so it must be a year with data
-    expect(repo.totalValue(state: 'Selangor', year: repo.years.last), isNotNull);
+    expect(
+      repo.totalValue(state: 'Selangor', year: repo.years.last),
+      isNotNull,
+    );
   });
 }

@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:bmit2073_asgm/data/gdp_repository.dart';
+import 'package:bmit2073_asgm/data/local_grant_repository.dart';
+import 'package:bmit2073_asgm/data/policy_source.dart';
 import 'package:bmit2073_asgm/data/user_repository.dart';
 import 'package:bmit2073_asgm/main.dart';
 import 'package:bmit2073_asgm/state/app_state.dart';
@@ -15,8 +17,14 @@ void main() {
 
     final app = AppState(
       repository: GdpRepository(),
-      policies: const [],
+      policySource: PolicySource(),
+      catalogue: const PolicyCatalogue(
+        version: 0,
+        policies: [],
+        isRemote: false,
+      ),
       users: LocalUserRepository(),
+      grants: LocalGrantRepository(),
     );
     // Asset loading and shared_preferences do real async I/O, which the
     // fake-async test zone blocks on — run init in the real async zone.
