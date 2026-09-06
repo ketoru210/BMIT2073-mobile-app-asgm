@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../data/supabase_user_repository.dart';
 import '../pages/register_page.dart';
+import '../state/app_state.dart';
 import '../ui/palette.dart';
 import '../widgets/back_chevron.dart';
 
@@ -48,6 +50,8 @@ class _LoginPageState extends State<LoginPage> {
         password: password,
       );
       if (response.user == null) throw StateError('Login failed. Please check your details.');
+      if (!mounted) return;
+      await context.read<AppState>().accountChanged();
       if (!mounted) return;
       widget.onLoggedIn?.call();
       if (widget.onLoggedIn == null) {

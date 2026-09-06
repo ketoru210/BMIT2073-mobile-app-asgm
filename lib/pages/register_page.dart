@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../data/supabase_user_repository.dart';
+import '../state/app_state.dart';
 import '../ui/palette.dart';
 import '../widgets/back_chevron.dart';
 import 'login_page.dart';
@@ -72,6 +74,8 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         );
       } else {
+        await context.read<AppState>().accountChanged();
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
