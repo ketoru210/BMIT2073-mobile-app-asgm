@@ -41,6 +41,14 @@ class AboutPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          const _Section(
+            title: 'Demo only',
+            body:
+                'This is a university coursework prototype. The grant '
+                'listings and the application form are a demonstration — '
+                'this app is not an official application channel, and '
+                'nothing submitted here reaches any agency or fund.',
+          ),
           _Section(
             title: 'Data source',
             body:
@@ -71,8 +79,9 @@ class AboutPage extends StatelessWidget {
           const _Section(
             title: 'Team',
             body:
-                'BMIT2073 group project — members: LYZ, FQW, LKY, LTW (TODO: change to full name). '
-                'Theme: SDG 9 · Industry, Innovation and Infrastructure.',
+                'BMIT2073 group project — members: Lam Yong Zhe, Lai Kang '
+                'Yong, Fong Qin Wen, Lian Teck Wei. Theme: SDG 9 · '
+                'Industry, Innovation and Infrastructure.',
           ),
         ],
       ),

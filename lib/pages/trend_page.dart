@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/csv_export.dart';
 import '../data/gdp_repository.dart';
 import '../data/metrics.dart';
 import '../models/sector.dart';
@@ -36,8 +37,27 @@ class TrendPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      BackChevron(
-                        onTap: () => Navigator.of(context).maybePop(),
+                      Row(
+                        children: [
+                          BackChevron(
+                            onTap: () => Navigator.of(context).maybePop(),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            tooltip: 'Export CSV',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            onPressed: () => _exportCsv(context, app),
+                            icon: const Icon(
+                              Icons.ios_share_rounded,
+                              color: Palette.ink,
+                              size: 26,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                       const Text(
@@ -88,6 +108,17 @@ class TrendPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Shares the current selection as CSV; a SnackBar covers failure so
+  /// the export never crashes the page.
+  Future<void> _exportCsv(BuildContext context, AppState app) async {
+    final ok = await CsvExport.share(app.repository, app.generate());
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not share the CSV export.')),
+      );
+    }
   }
 }
 
