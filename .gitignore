@@ -47,3 +47,9 @@ app.*.map.json
 # Local AI tooling — not part of the submitted project
 .serena/
 CLAUDE.md
+
+# Planning documents and the AI use log — handed in separately, not with the code
+docs/
+
+# DevTools workspace settings — local to whoever opened the profiler
+devtools_options.yaml
