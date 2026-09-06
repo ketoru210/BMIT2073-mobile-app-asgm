@@ -30,7 +30,10 @@ class DiversityPage extends StatelessWidget {
               HeroBand(
                 eyebrow: 'ANALYSIS RESULT · DIVERSITY DIAGNOSIS',
                 title: 'Economic concentration',
-                subtitle: 'All ${entries.length} states · ${app.year} · by HHI',
+                subtitle:
+                    '${entries.length} of '
+                    '${GdpRepository.canonicalStates.length} states · '
+                    '${app.year} · by HHI',
                 onExport: () => _exportCsv(context, app),
               ),
               Padding(
@@ -40,7 +43,10 @@ class DiversityPage extends StatelessWidget {
                   children: [
                     _RankingCard(entries: entries),
                     const SizedBox(height: 12),
-                    const _HhiFootnote(),
+                    _HhiFootnote(
+                      ranked: entries.length,
+                      total: GdpRepository.canonicalStates.length,
+                    ),
                     const SizedBox(height: 12),
                     InsightStrip(
                       lines: _insightLines(app.repository, entries, app.year),
@@ -221,15 +227,25 @@ class _Track extends StatelessWidget {
 /// The lower bound is read from [HhiBands], not typed in, so it stays
 /// true if the sector list ever changes.
 class _HhiFootnote extends StatelessWidget {
-  const _HhiFootnote();
+  const _HhiFootnote({required this.ranked, required this.total});
+
+  /// How many states scored this year, and how many exist in the dataset.
+  final int ranked;
+  final int total;
 
   @override
   Widget build(BuildContext context) {
     final sectorCount = Sector.values.length;
     final floor = HhiBands.floor.toStringAsFixed(3);
+    // The source dataset does not cover every state in every year, so say
+    // which years are short rather than quietly ranking fewer states.
+    final gap = ranked < total
+        ? '\n${total - ranked} state(s) are absent from the source data for '
+              'this year and cannot be scored.'
+        : '';
     return Text(
       'HHI = Σ(sector share)² · 1/$sectorCount = $floor (even split) '
-      'to 1.000 (one sector)',
+      'to 1.000 (one sector)$gap',
       style: const TextStyle(fontSize: 9.5, color: Palette.ghost),
     );
   }
