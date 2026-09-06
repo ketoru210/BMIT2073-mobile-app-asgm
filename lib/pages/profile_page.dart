@@ -224,7 +224,7 @@ class ProfilePage extends StatelessWidget {
 
     try {
       await users.setNickname(value);
-      app.notifyListeners();
+      app.profileChanged();
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
