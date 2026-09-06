@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/gdp_repository.dart';
 import 'data/local_grant_repository.dart';
 import 'data/policy_source.dart';
-import 'data/user_repository.dart';
+import 'data/supabase_user_repository.dart';
 import 'pages/about_page.dart';
 import 'pages/filter_page.dart';
 import 'pages/home_page.dart';
+import 'pages/profile_page.dart';
 import 'state/app_state.dart';
 import 'ui/palette.dart';
 import 'widgets/bottom_nav.dart';
 
-/// Entry point: loads the bundled dataset + policy catalogue, wires the
-/// provider, and launches the tab shell.
+/// Entry point: brings up Supabase, loads the bundled dataset + policy
+/// catalogue, wires the provider, and launches the tab shell.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://hlkakrrlahounqqpukwi.supabase.co',
+    publishableKey: 'sb_publishable_sbGp4hVepEIOZN3hYxgXJg_PzcQaG_C',
+  );
 
   // Asset only, instant — startup awaits nothing else. The live catalogue
   // (if any) arrives in the background via AppState.init/_refreshPolicies.
@@ -25,7 +32,7 @@ Future<void> main() async {
     repository: GdpRepository(),
     policySource: policySource,
     catalogue: await policySource.loadBundled(),
-    users: LocalUserRepository(),
+    users: SupabaseUserRepository(),
     grants: LocalGrantRepository(),
   );
   await app.init();
@@ -107,7 +114,14 @@ class _HomeShellState extends State<HomeShell> {
         body: IndexedStack(
           index: _index,
           children: [
-            HomePage(onStartAnalysis: () => _selectTab(1)),
+            HomePage(
+              onStartAnalysis: () => _selectTab(1),
+              onProfile: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const ProfilePage()),
+                );
+              },
+            ),
             AnalyzeNavigator(
               navigatorKey: _analyzeNav,
               onExit: () => _selectTab(0),
