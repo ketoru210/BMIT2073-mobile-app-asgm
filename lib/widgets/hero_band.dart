@@ -20,6 +20,7 @@ class HeroBand extends StatelessWidget {
     this.showBack = true,
     this.trailing,
     this.footer,
+    this.onExport,
   });
 
   final String eyebrow;
@@ -36,6 +37,11 @@ class HeroBand extends StatelessWidget {
   final bool showBack;
   final Widget? trailing;
   final Widget? footer;
+
+  /// F9 CSV export entry point. Null on pages that don't offer it, in
+  /// which case the top row renders exactly as it did before this field
+  /// existed.
+  final VoidCallback? onExport;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +62,7 @@ class HeroBand extends StatelessWidget {
                 children: [
                   if (showBack) const _BackArrow(),
                   const Spacer(),
+                  if (onExport != null) _ExportButton(onPressed: onExport!),
                   trailing ?? const SizedBox(),
                 ],
               ),
@@ -94,6 +101,24 @@ class HeroBand extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// White download/share icon that triggers the F9 CSV export.
+class _ExportButton extends StatelessWidget {
+  const _ExportButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Export CSV',
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      onPressed: onPressed,
+      icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 30),
     );
   }
 }
