@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/gdp_repository.dart';
-import 'data/local_grant_repository.dart';
 import 'data/policy_source.dart';
+import 'data/supabase_grant_repository.dart';
 import 'data/supabase_user_repository.dart';
 import 'pages/about_page.dart';
 import 'pages/filter_page.dart';
@@ -33,7 +33,7 @@ Future<void> main() async {
     policySource: policySource,
     catalogue: await policySource.loadBundled(),
     users: SupabaseUserRepository(),
-    grants: LocalGrantRepository(),
+    grants: SupabaseGrantRepository(),
   );
   await app.init();
 
