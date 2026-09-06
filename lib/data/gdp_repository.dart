@@ -4,17 +4,24 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../models/gdp_record.dart';
 import '../models/sector.dart';
+import 'api_client.dart';
 import 'sector_mapping.dart';
 
 /// Owns the dataset: loads the bundled snapshot, joins the abs and
 /// growth_yoy rows into [GdpRecord]s, and answers every query.
 ///
-/// The live API (api.data.gov.my) can replace the asset later; pages
-/// never see the difference because they only talk to this class.
+/// Loading is deliberately split in two. [load] reads the bundled asset
+/// and is the only step startup waits on, so the first screen never waits
+/// on a network. [refresh] then replaces that baseline with live
+/// data.gov.my data if it can, and is a no-op the app can ignore when it
+/// cannot — pages see no difference either way, since they only talk to
+/// this class.
 ///
 /// `Supra` is the source's "not attributable to a state" catch-all.
 class GdpRepository {
-  GdpRepository();
+  GdpRepository({GdpApiClient? client}) : _client = client ?? GdpApiClient();
+
+  final GdpApiClient _client;
 
   /// Canonical state names in a fixed order, Supra excluded.
   static const List<String> canonicalStates = [
@@ -47,6 +54,30 @@ class GdpRepository {
   final List<int> _years = [];
   bool _loaded = false;
 
+  bool _isStale = true;
+  DateTime? _fetchedAt;
+
+  /// True when the app is running on the bundled baseline rather than a
+  /// live fetch — the About page reads this to tell the user which one.
+  bool get isStale => _isStale;
+
+  /// When the live fetch that is currently in effect completed, or null
+  /// when the app is on the bundled baseline.
+  DateTime? get fetchedAt => _fetchedAt;
+
+  /// The one sentence the About page shows about where the numbers came
+  /// from. Built here rather than in the page so the wording cannot drift
+  /// away from which source is actually in effect.
+  String get sourceLabel {
+    final at = _fetchedAt;
+    if (_isStale || at == null) {
+      return 'Bundled baseline · data.gov.my snapshot';
+    }
+    final m = at.month.toString().padLeft(2, '0');
+    final d = at.day.toString().padLeft(2, '0');
+    return 'Live · data.gov.my · fetched ${at.year}-$m-$d';
+  }
+
   /// Whether [load] has completed.
   bool get isLoaded => _loaded;
 
@@ -59,12 +90,54 @@ class GdpRepository {
   List<int> recentYears(int count) =>
       _years.length <= count ? years : _years.sublist(_years.length - count);
 
-  /// Loads assets/gdp_snapshot.json into memory.
+  /// Loads the bundled baseline. Fast, offline, and always succeeds —
+  /// startup awaits this and nothing else.
   Future<void> load() async {
     final raw = await rootBundle.loadString('assets/gdp_snapshot.json');
-    final rows = jsonDecode(raw) as List<dynamic>;
+    _commit(_parse(jsonDecode(raw) as List<dynamic>));
+    _isStale = true;
+    _fetchedAt = null;
+  }
 
+  /// Replaces the baseline with live data if the fetch works. Returns
+  /// whether it did, and leaves the dataset untouched when it did not.
+  ///
+  /// Called after the UI is already on screen, never before it: an
+  /// awaited network call in `main()` shows the user a blank screen for
+  /// as long as the request takes, which is exactly what a dataset that
+  /// ships in the APK should never do.
+  Future<bool> refresh() async {
+    final rows = await _client.fetchRows();
+    if (rows == null) return false;
+
+    // Parsed into a detached dataset first: a 200 carrying a reshaped
+    // payload throws in [_parse] rather than arriving null or empty, and
+    // half-ingesting it would leave the app worse off than not trying.
+    final _Dataset parsed;
+    try {
+      parsed = _parse(rows);
+    } catch (_) {
+      return false;
+    }
+    // An empty array would otherwise blank every screen, which reads to
+    // the user as a broken app rather than as stale data.
+    if (parsed.years.isEmpty || parsed.abs.isEmpty) return false;
+
+    _commit(parsed);
+    _isStale = false;
+    _fetchedAt = DateTime.now();
+    return true;
+  }
+
+  /// Parses rows in the data.gov.my shape. Throws if they are not in it.
+  ///
+  /// Shared by the bundled and live paths — the asset is a copy of that
+  /// endpoint's response, so one parser serves both.
+  _Dataset _parse(List<dynamic> rows) {
+    final abs = <String, double?>{};
+    final growth = <String, double?>{};
     final yearsSeen = <int>{};
+
     for (final row in rows.cast<Map<String, dynamic>>()) {
       // date is "YYYY-01-01" — annual data, so only the year matters.
       final year = int.parse((row['date'] as String).substring(0, 4));
@@ -75,16 +148,26 @@ class GdpRepository {
 
       yearsSeen.add(year);
       if (row['series'] == 'abs') {
-        _abs[key] = value;
+        abs[key] = value;
       } else {
-        _growth[key] = value;
+        growth[key] = value;
       }
     }
 
+    return _Dataset(abs, growth, yearsSeen.toList()..sort());
+  }
+
+  /// Swaps [parsed] in as the dataset every query reads from.
+  void _commit(_Dataset parsed) {
+    _abs
+      ..clear()
+      ..addAll(parsed.abs);
+    _growth
+      ..clear()
+      ..addAll(parsed.growth);
     _years
       ..clear()
-      ..addAll(yearsSeen)
-      ..sort();
+      ..addAll(parsed.years);
     _loaded = true;
   }
 
@@ -179,4 +262,15 @@ class GdpRepository {
     }
     return sumSquares;
   }
+}
+
+/// One parsed dataset, held apart from the repository until it is known
+/// to be good. Keeps a failed [GdpRepository.refresh] from leaving the
+/// app with half of a bad payload.
+class _Dataset {
+  const _Dataset(this.abs, this.growth, this.years);
+
+  final Map<String, double?> abs;
+  final Map<String, double?> growth;
+  final List<int> years;
 }
