@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/gdp_repository.dart';
+import '../data/grant_repository.dart';
+import '../data/policy_source.dart';
 import '../data/user_repository.dart';
 import '../models/analysis_request.dart';
 import '../models/policy_record.dart';
@@ -15,13 +19,35 @@ import '../models/sector.dart';
 class AppState extends ChangeNotifier {
   AppState({
     required this.repository,
-    required this.policies,
+    required this.policySource,
+    required PolicyCatalogue catalogue,
     required this.users,
-  });
+    required this.grants,
+  }) {
+    _catalogue = catalogue;
+  }
 
   final GdpRepository repository;
-  final List<PolicyRecord> policies;
+
+  /// Loads and upgrades the policy catalogue; held here so the background
+  /// refresh in [init] can reach it the same way it reaches [repository].
+  final PolicySource policySource;
   final UserRepository users;
+
+  late PolicyCatalogue _catalogue;
+
+  /// The catalogue currently in effect — bundled until a newer remote one
+  /// lands. The Policy page reads [PolicyCatalogue.label] off this so the
+  /// version shown can never drift from what was actually loaded.
+  PolicyCatalogue get catalogue => _catalogue;
+
+  /// Convenience for the many readers that only ever wanted the records.
+  List<PolicyRecord> get policies => _catalogue.policies;
+
+  /// Grants backend. Held here so the grant screens reach it the same way
+  /// every other page reaches the dataset, and so swapping the local stub
+  /// for the Supabase implementation is a one-line change in main().
+  final GrantRepository grants;
 
   bool ready = false;
   List<SavedAnalysis> favorites = [];
@@ -32,11 +58,16 @@ class AppState extends ChangeNotifier {
   String stateB = 'Johor';
   bool compareEnabled = true;
   Sector sector = Sector.manufacturing;
+
   /// Selected year; [init] points it at the newest year in the snapshot.
   int year = 0;
   PolicyRecord? selectedPolicy;
 
   /// Loads the dataset and user data once at startup.
+  ///
+  /// Only the bundled baseline is awaited, so the first frame is never
+  /// held up by the network; the live fetch runs after and repaints the
+  /// app if it lands.
   Future<void> init() async {
     await repository.load();
     // start on the newest year the snapshot carries rather than a year
@@ -45,6 +76,40 @@ class AppState extends ChangeNotifier {
     await users.init();
     favorites = await users.favorites();
     ready = true;
+    notifyListeners();
+
+    unawaited(_refreshDataset());
+    unawaited(_refreshPolicies());
+  }
+
+  /// Pulls live data in the background and repaints if it arrives.
+  ///
+  /// The year selection is re-pinned afterwards because a live fetch can
+  /// carry a year the bundled snapshot did not have, and a selection
+  /// pointing at a year the dataset no longer holds renders as empty.
+  Future<void> _refreshDataset() async {
+    if (!await repository.refresh()) return;
+    if (!repository.years.contains(year)) {
+      year = repository.years.last;
+    }
+    notifyListeners();
+  }
+
+  /// Pulls the live policy catalogue in the background and repaints if a
+  /// newer version arrives. Runs after the first frame, same as
+  /// [_refreshDataset] — the network must never hold up startup.
+  Future<void> _refreshPolicies() async {
+    final newer = await policySource.upgrade(_catalogue);
+    if (newer == null) return;
+
+    _catalogue = newer;
+    // A selection pointing at a policy the new catalogue no longer carries
+    // would render the detail page empty, so drop it.
+    final selected = selectedPolicy;
+    if (selected != null &&
+        !_catalogue.policies.any((p) => p.policyId == selected.policyId)) {
+      selectedPolicy = null;
+    }
     notifyListeners();
   }
 

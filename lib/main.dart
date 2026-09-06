@@ -1,12 +1,11 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show SystemNavigator, rootBundle;
+import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:provider/provider.dart';
 
 import 'data/gdp_repository.dart';
+import 'data/local_grant_repository.dart';
+import 'data/policy_source.dart';
 import 'data/user_repository.dart';
-import 'models/policy_record.dart';
 import 'pages/about_page.dart';
 import 'pages/filter_page.dart';
 import 'pages/home_page.dart';
@@ -19,21 +18,19 @@ import 'widgets/bottom_nav.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Asset only, instant — startup awaits nothing else. The live catalogue
+  // (if any) arrives in the background via AppState.init/_refreshPolicies.
+  final policySource = PolicySource();
   final app = AppState(
     repository: GdpRepository(),
-    policies: await _loadPolicies(),
+    policySource: policySource,
+    catalogue: await policySource.loadBundled(),
     users: LocalUserRepository(),
+    grants: LocalGrantRepository(),
   );
   await app.init();
 
   runApp(GdpAnalyzerApp(appState: app));
-}
-
-/// Reads assets/policy_catalogue.json once at startup.
-Future<List<PolicyRecord>> _loadPolicies() async {
-  final raw = await rootBundle.loadString('assets/policy_catalogue.json');
-  final list = jsonDecode(raw) as List<dynamic>;
-  return list.cast<Map<String, dynamic>>().map(PolicyRecord.fromJson).toList();
 }
 
 class GdpAnalyzerApp extends StatelessWidget {
