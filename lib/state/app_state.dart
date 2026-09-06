@@ -195,6 +195,19 @@ class AppState extends ChangeNotifier {
   /// protected [notifyListeners].
   void profileChanged() => notifyListeners();
 
+  /// Re-reads the profile and favourites after a sign-in or sign-out.
+  ///
+  /// The auth screens hold their own repository instance, so the Supabase
+  /// session changes underneath this one without its cached nickname and
+  /// role ever being refreshed. Without this the app keeps behaving as the
+  /// previous user — an administrator would not see the admin entries until
+  /// the next cold start.
+  Future<void> accountChanged() async {
+    await users.init();
+    favorites = await users.favorites();
+    notifyListeners();
+  }
+
   /// Saves the current selection as a favourite and refreshes the list.
   Future<void> saveCurrentFavorite() async {
     final label = _describeSelection();
