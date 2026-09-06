@@ -93,7 +93,10 @@ class _RegisterPageState extends State<RegisterPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           children: [
-            BackChevron(onTap: () => Navigator.of(context).maybePop()),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: BackChevron(onTap: () => Navigator.of(context).maybePop()),
+            ),
             const SizedBox(height: 42),
             const Center(
               child: Text(

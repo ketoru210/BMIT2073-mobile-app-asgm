@@ -86,7 +86,10 @@ class _LoginPageState extends State<LoginPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           children: [
-            BackChevron(onTap: () => Navigator.of(context).maybePop()),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: BackChevron(onTap: () => Navigator.of(context).maybePop()),
+            ),
             const SizedBox(height: 42),
             const Center(
               child: Text(
