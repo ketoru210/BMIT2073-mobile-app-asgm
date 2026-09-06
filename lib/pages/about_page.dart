@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../data/metrics.dart';
 import '../models/sector.dart';
+import '../state/app_state.dart';
 import '../ui/palette.dart';
 import '../widgets/back_chevron.dart';
 
@@ -39,7 +41,7 @@ class AboutPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const _Section(
+          _Section(
             title: 'Data source',
             body:
                 'All GDP figures come from the official data.gov.my '
@@ -47,6 +49,7 @@ class AboutPage extends StatelessWidget {
                 'Real GDP by State & Economic Sector"). Values are RM '
                 'million at constant 2015 prices. The app bundles a '
                 'snapshot of the dataset so every screen works offline.',
+            footnote: _dataSourceStatus(context),
           ),
           const _Section(
             title: 'What is "real GDP"?',
@@ -86,6 +89,13 @@ class AboutPage extends StatelessWidget {
   }
 }
 
+/// One line reporting whether the dataset is live or the bundled baseline.
+///
+/// The wording lives on the repository, so this line can never disagree
+/// with what [GdpRepository.load] actually did.
+String _dataSourceStatus(BuildContext context) =>
+    context.read<AppState>().repository.sourceLabel;
+
 /// One titled text block, kept simple on purpose.
 /// Plain-language HHI explainer.
 ///
@@ -106,10 +116,15 @@ String _hhiExplainer() {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.body});
+  const _Section({required this.title, required this.body, this.footnote});
 
   final String title;
   final String body;
+
+  /// Optional one-line status shown below [body], e.g. the data-source
+  /// freshness line. Kept separate from body so it can be computed at
+  /// build time without touching the const explainer text above it.
+  final String? footnote;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +155,17 @@ class _Section extends StatelessWidget {
                 height: 1.5,
               ),
             ),
+            if (footnote != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                footnote!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Palette.ink,
+                ),
+              ),
+            ],
           ],
         ),
       ),
