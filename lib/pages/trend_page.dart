@@ -180,9 +180,8 @@ class _AreaCard extends StatelessWidget {
       for (final v in values)
         if (v != null) v,
     ];
-    final maxY = valid.isEmpty
-        ? 1.0
-        : valid.reduce((a, b) => a > b ? a : b) * 1.15;
+    final peak = valid.isEmpty ? 0.0 : valid.reduce((a, b) => a > b ? a : b);
+    final maxY = peak > 0 ? peak * 1.15 : 4.0;
     final interval = maxY / 4;
 
     return LineChartData(
