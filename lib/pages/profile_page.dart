@@ -189,36 +189,10 @@ class ProfilePage extends StatelessWidget {
       AppState app,
       SupabaseUserRepository users,
       ) async {
-    final controller = TextEditingController(text: users.nickname ?? '');
-
     final value = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Nickname'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Enter your nickname',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(
-              context,
-              controller.text.trim(),
-            ),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (_) => _NicknameDialog(initial: users.nickname ?? ''),
     );
-
-    controller.dispose();
 
     if (value == null || value.isEmpty) return;
 
@@ -378,6 +352,50 @@ class _ProfileRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NicknameDialog extends StatefulWidget {
+  const _NicknameDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_NicknameDialog> createState() => _NicknameDialogState();
+}
+
+class _NicknameDialogState extends State<_NicknameDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nickname'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(
+          hintText: 'Enter your nickname',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

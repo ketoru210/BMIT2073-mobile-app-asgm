@@ -330,7 +330,8 @@ class _TrendCard extends StatelessWidget {
         for (final v in s)
           if (v != null) v,
     ];
-    final maxY = all.isEmpty ? 1.0 : all.reduce((a, b) => a > b ? a : b) * 1.15;
+    final peak = all.isEmpty ? 0.0 : all.reduce((a, b) => a > b ? a : b);
+    final maxY = peak > 0 ? peak * 1.15 : 4.0;
     final interval = maxY / 4;
 
     return LineChartData(
