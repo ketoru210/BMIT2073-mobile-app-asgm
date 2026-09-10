@@ -164,7 +164,6 @@ class AppState extends ChangeNotifier {
         return AnalysisRequest(
           mode: mode,
           states: [stateA],
-          sector: sector,
           yearStart: year,
           yearEnd: year,
         );

@@ -55,8 +55,12 @@ class FilterPage extends StatelessWidget {
         final showStateRowOnly =
             app.mode == AnalysisMode.sectorBreakdown ||
             app.mode == AnalysisMode.timeTrend;
-        final showSectorSection = showStateSection || showStateRowOnly;
-        final showYearSection = app.mode != AnalysisMode.policyImpact;
+        final showSectorSection = 
+            app.mode == AnalysisMode.stateComparison || 
+            app.mode == AnalysisMode.timeTrend;
+        final showYearSection = 
+            app.mode != AnalysisMode.policyImpact && 
+            app.mode != AnalysisMode.timeTrend;
 
         return Scaffold(
           backgroundColor: Palette.ground,

@@ -183,15 +183,24 @@ class _DetailPageState extends State<DetailPage> {
       _submitting = true;
       _error = null;
     });
-    await context.read<AppState>().grants.apply(application);
-    if (!mounted) return;
+    try {
+      await context.read<AppState>().grants.apply(application);
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Application submitted.')));
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const MyApplicationsPage()),
-    );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Application submitted.')));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const MyApplicationsPage()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _error = 'Could not submit the application. Please try again.',
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 }
 
