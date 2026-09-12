@@ -11,6 +11,8 @@ import '../widgets/app_card.dart';
 import '../widgets/back_chevron.dart';
 import '../widgets/section_label.dart';
 import 'login_page.dart';
+import 'feedback_page.dart';
+import 'feedback_admin_page.dart';
 import 'pending_applications_page.dart';
 import 'publish_grant_page.dart';
 
@@ -126,6 +128,18 @@ class ProfilePage extends StatelessWidget {
                     value: '${app.favorites.length}',
                     onTap: () => _showFavorites(context, app.favorites),
                   ),
+                  if (users.role != UserRole.admin) ...[
+                    const SizedBox(height: 10),
+                    _ProfileRow(
+                      icon: Icons.feedback_outlined,
+                      label: 'Feedback / Report Issue',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const FeedbackPage(),
+                        ),
+                      ),
+                    ),
+                  ],
                   if (users.role == UserRole.admin) ...[
                     const SizedBox(height: 22),
                     const SectionLabel(text: 'ADMINISTRATION'),
@@ -146,6 +160,16 @@ class ProfilePage extends StatelessWidget {
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const PendingApplicationsPage(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _ProfileRow(
+                      icon: Icons.feedback_outlined,
+                      label: 'Feedback Reports',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const FeedbackAdminPage(),
                         ),
                       ),
                     ),
