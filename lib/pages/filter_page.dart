@@ -320,7 +320,7 @@ class _UseMyLocationButtonState extends State<_UseMyLocationButton> {
     final state = point == null ? null : locator.nearest(point);
     setState(() => _busy = false);
     if (state == null) {
-      _say(_failureMessage(result.failure));
+      _say(locationFailureMessage(result.failure));
       return;
     }
     widget.onLocated(state);
@@ -329,20 +329,6 @@ class _UseMyLocationButtonState extends State<_UseMyLocationButton> {
     _say('Located you in $state.');
   }
 
-  /// Why the fix did not happen, in the user's words. A fix that arrived
-  /// but landed outside the country is the `null` case.
-  String _failureMessage(LocationFailure? failure) {
-    switch (failure) {
-      case LocationFailure.permissionDenied:
-        return 'Location permission denied.';
-      case LocationFailure.serviceDisabled:
-        return 'Turn on location to use this.';
-      case LocationFailure.noFix:
-        return 'Could not get a location fix.';
-      case null:
-        return 'You do not appear to be in Malaysia.';
-    }
-  }
 
   void _say(String message) {
     ScaffoldMessenger.of(
