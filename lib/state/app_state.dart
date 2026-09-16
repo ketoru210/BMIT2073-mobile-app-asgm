@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../data/gdp_repository.dart';
+import '../data/grant_reminder_repository.dart';
 import '../data/grant_repository.dart';
+import '../data/notification_service.dart';
 import '../data/policy_source.dart';
 import '../data/user_repository.dart';
 import '../models/analysis_request.dart';
@@ -23,6 +25,8 @@ class AppState extends ChangeNotifier {
     required PolicyCatalogue catalogue,
     required this.users,
     required this.grants,
+    required this.reminders,
+    required this.notifications,
   }) {
     _catalogue = catalogue;
   }
@@ -48,6 +52,17 @@ class AppState extends ChangeNotifier {
   /// every other page reaches the dataset, and so swapping the local stub
   /// for the Supabase implementation is a one-line change in main().
   final GrantRepository grants;
+
+  /// The signed-in user's grant reminders, read by the Browse page and
+  /// checked by [checkGrantReminders].
+  final GrantReminderRepository reminders;
+
+  /// Shows the system notification when a reminder is fulfilled.
+  final NotificationService notifications;
+
+  /// Launch, sign-in and resume can land on top of each other; this stops
+  /// two overlapping checks from notifying about the same grant.
+  bool _checkingReminders = false;
 
   bool ready = false;
   List<SavedAnalysis> favorites = [];
@@ -80,6 +95,7 @@ class AppState extends ChangeNotifier {
 
     unawaited(_refreshDataset());
     unawaited(_refreshPolicies());
+    unawaited(checkGrantReminders());
   }
 
   /// Pulls live data in the background and repaints if it arrives.
@@ -205,6 +221,44 @@ class AppState extends ChangeNotifier {
     await users.init();
     favorites = await users.favorites();
     notifyListeners();
+    unawaited(checkGrantReminders());
+  }
+
+  /// Notifies about every waiting reminder that a new grant now satisfies.
+  ///
+  /// Candidates come from [GrantRepository.available], so closed and
+  /// expired grants never fire a reminder; the reminder's own options
+  /// (nationwide, any sector, minimum amount, published after it was set)
+  /// then narrow them. The reminder is marked fulfilled before the
+  /// notification is shown: if that write fails, nothing is shown and the
+  /// next check retries, instead of a reminder that notifies on every
+  /// launch. Errors are logged and swallowed — the check runs again on the
+  /// next launch, sign-in or resume.
+  Future<void> checkGrantReminders() async {
+    if (_checkingReminders || users.userId == null) return;
+    _checkingReminders = true;
+    try {
+      for (final reminder in await reminders.active()) {
+        final candidates = await grants.available(
+          state: reminder.state,
+          sector: reminder.sector,
+        );
+        final matches = candidates.where(reminder.matches);
+        if (matches.isEmpty) continue;
+        final grant = matches.first;
+        await reminders.fulfil(reminder.id, grant.id);
+        await notifications.show(
+          // the plugin wants a non-negative 32-bit id; stable per reminder
+          id: reminder.id.hashCode & 0x7fffffff,
+          title: 'New grant for ${reminder.state} · ${reminder.sector.label}',
+          body: '${grant.name} is now open for applications.',
+        );
+      }
+    } catch (error) {
+      debugPrint('Grant reminder check failed: $error');
+    } finally {
+      _checkingReminders = false;
+    }
   }
 
   /// Saves the current selection as a favourite and refreshes the list.

@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/gdp_repository.dart';
+import 'data/notification_service.dart';
 import 'data/policy_source.dart';
+import 'data/supabase_grant_reminder_repository.dart';
 import 'data/supabase_grant_repository.dart';
 import 'data/supabase_user_repository.dart';
 import 'pages/about_page.dart';
@@ -28,12 +30,17 @@ Future<void> main() async {
   // Asset only, instant — startup awaits nothing else. The live catalogue
   // (if any) arrives in the background via AppState.init/_refreshPolicies.
   final policySource = PolicySource();
+  // Ready before app.init, which runs the first grant reminder check.
+  final notifications = LocalNotificationService();
+  await notifications.init();
   final app = AppState(
     repository: GdpRepository(),
     policySource: policySource,
     catalogue: await policySource.loadBundled(),
     users: SupabaseUserRepository(),
     grants: SupabaseGrantRepository(),
+    reminders: SupabaseGrantReminderRepository(),
+    notifications: notifications,
   );
   await app.init();
 
@@ -81,6 +88,24 @@ class _HomeShellState extends State<HomeShell> {
   /// Lets the shell drive the Analyze tab's history (system back,
   /// and the filter page's own back arrow).
   final GlobalKey<NavigatorState> _analyzeNav = GlobalKey<NavigatorState>();
+
+  /// Reminders are only checked while the app is open, so coming back to
+  /// the foreground is one of the moments a new grant can be noticed.
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onResume: () => context.read<AppState>().checkGrantReminders(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
 
   void _selectTab(int index) => setState(() => _index = index);
 

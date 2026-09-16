@@ -8,12 +8,15 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:bmit2073_asgm/data/gdp_repository.dart';
+import 'package:bmit2073_asgm/data/local_grant_reminder_repository.dart';
 import 'package:bmit2073_asgm/data/local_grant_repository.dart';
 import 'package:bmit2073_asgm/data/policy_source.dart';
 import 'package:bmit2073_asgm/data/user_repository.dart';
 import 'package:bmit2073_asgm/models/sector.dart';
 import 'package:bmit2073_asgm/pages/grants/browse_page.dart';
 import 'package:bmit2073_asgm/state/app_state.dart';
+
+import 'fake_notification_service.dart';
 
 void main() {
   setUp(() {
@@ -35,6 +38,8 @@ void main() {
       ),
       users: LocalUserRepository(),
       grants: LocalGrantRepository(),
+      reminders: LocalGrantReminderRepository(),
+      notifications: FakeNotificationService(),
     );
     return ChangeNotifierProvider<AppState>.value(
       value: app,

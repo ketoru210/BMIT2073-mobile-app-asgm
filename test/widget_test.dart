@@ -5,11 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:bmit2073_asgm/data/gdp_repository.dart';
+import 'package:bmit2073_asgm/data/local_grant_reminder_repository.dart';
 import 'package:bmit2073_asgm/data/local_grant_repository.dart';
 import 'package:bmit2073_asgm/data/policy_source.dart';
 import 'package:bmit2073_asgm/data/user_repository.dart';
 import 'package:bmit2073_asgm/main.dart';
 import 'package:bmit2073_asgm/state/app_state.dart';
+
+import 'fake_notification_service.dart';
 
 void main() {
   testWidgets('app boots and shows the home screen', (tester) async {
@@ -25,6 +28,8 @@ void main() {
       ),
       users: LocalUserRepository(),
       grants: LocalGrantRepository(),
+      reminders: LocalGrantReminderRepository(),
+      notifications: FakeNotificationService(),
     );
     // Asset loading and shared_preferences do real async I/O, which the
     // fake-async test zone blocks on — run init in the real async zone.
