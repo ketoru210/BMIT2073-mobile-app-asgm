@@ -5,6 +5,26 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import 'location_service.dart';
 
+/// Why a "use my location" tap did not end in a state, in the user's own
+/// words.
+///
+/// Lives here rather than in either page because both entry points — the
+/// grants Browse list and the analysis filter — have to say the same
+/// thing, and because the `null` case is this file's own rule: a fix that
+/// arrived but that [StateLocator.nearest] placed outside Malaysia.
+String locationFailureMessage(LocationFailure? failure) {
+  switch (failure) {
+    case LocationFailure.permissionDenied:
+      return 'Location permission denied.';
+    case LocationFailure.serviceDisabled:
+      return 'Turn on location to use this.';
+    case LocationFailure.noFix:
+      return 'Could not get a location fix.';
+    case null:
+      return 'You do not appear to be in Malaysia.';
+  }
+}
+
 /// One state's reference point.
 ///
 /// [radiusKm] marks an enclave: a federal territory small enough, and

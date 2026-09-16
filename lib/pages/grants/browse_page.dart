@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/grant_eligibility.dart';
-import '../../data/location_service.dart';
 import '../../data/state_locator.dart';
 import '../../models/grant.dart';
 import '../../models/sector.dart';
@@ -111,23 +110,9 @@ class _BrowsePageState extends State<BrowsePage> {
         _load();
       }
     });
-    if (state == null) _say(_failureMessage(result.failure));
+    if (state == null) _say(locationFailureMessage(result.failure));
   }
 
-  /// Why the fix did not happen, in the user's words. A fix that arrived
-  /// but landed outside the country is the `null` case.
-  String _failureMessage(LocationFailure? failure) {
-    switch (failure) {
-      case LocationFailure.permissionDenied:
-        return 'Location permission denied.';
-      case LocationFailure.serviceDisabled:
-        return 'Turn on location to use this.';
-      case LocationFailure.noFix:
-        return 'Could not get a location fix.';
-      case null:
-        return 'You do not appear to be in Malaysia.';
-    }
-  }
 
   void _say(String message) {
     ScaffoldMessenger.of(
