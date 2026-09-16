@@ -28,6 +28,30 @@ const Map<AnalysisMode, String> _modeLabels = {
   AnalysisMode.policyImpact: 'Policy Impact',
 };
 
+/// The result page one [AnalysisMode] leads to.
+///
+/// Top-level because the filter's Generate button is no longer the only
+/// way in: the Home page's random-analysis card opens the same pages,
+/// and both must agree on which page belongs to which mode.
+Widget analysisPageFor(AnalysisMode mode) {
+  switch (mode) {
+    case AnalysisMode.stateComparison:
+      return const ComparisonPage();
+    case AnalysisMode.sectorBreakdown:
+      return const BreakdownPage();
+    case AnalysisMode.timeTrend:
+      return const TrendPage();
+    case AnalysisMode.diversityDiagnosis:
+      return const DiversityPage();
+    case AnalysisMode.policyImpact:
+      // SafeArea keeps the back row below the status bar
+      return const Scaffold(
+        backgroundColor: Palette.ground,
+        body: SafeArea(child: PolicyPage()),
+      );
+  }
+}
+
 /// Analysis Filter — the Analyze tab's root page.
 ///
 /// The back arrow always shows: it pops when this page was pushed, and
@@ -153,29 +177,9 @@ class FilterPage extends StatelessWidget {
 
   /// Pushes the result page for the selected mode.
   void _generate(BuildContext context, AppState app) {
-    Widget route;
-    switch (app.mode) {
-      case AnalysisMode.stateComparison:
-        route = const ComparisonPage();
-        break;
-      case AnalysisMode.sectorBreakdown:
-        route = const BreakdownPage();
-        break;
-      case AnalysisMode.timeTrend:
-        route = const TrendPage();
-        break;
-      case AnalysisMode.diversityDiagnosis:
-        route = const DiversityPage();
-        break;
-      case AnalysisMode.policyImpact:
-        // SafeArea keeps the back row below the status bar
-        route = const Scaffold(
-          backgroundColor: Palette.ground,
-          body: SafeArea(child: PolicyPage()),
-        );
-        break;
-    }
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => route));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => analysisPageFor(app.mode)),
+    );
   }
 }
 

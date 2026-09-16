@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -162,6 +163,29 @@ class AppState extends ChangeNotifier {
 
   void selectYear(int newYear) {
     year = newYear;
+    notifyListeners();
+  }
+
+  /// Rolls a whole filter at random and applies it in one notification.
+  ///
+  /// Policy Impact is left out on purpose: it needs a policy picked
+  /// first, so landing there at random would open an empty page. State B
+  /// is never the same as State A — comparing a state with itself is a
+  /// flat chart and a wasted roll.
+  void randomize([Random? random]) {
+    final rng = random ?? Random();
+    final modes = AnalysisMode.values
+        .where((m) => m != AnalysisMode.policyImpact)
+        .toList();
+    final states = GdpRepository.canonicalStates;
+
+    mode = modes[rng.nextInt(modes.length)];
+    stateA = states[rng.nextInt(states.length)];
+    final others = states.where((s) => s != stateA).toList();
+    stateB = others[rng.nextInt(others.length)];
+    sector = Sector.values[rng.nextInt(Sector.values.length)];
+    final years = repository.years;
+    if (years.isNotEmpty) year = years[rng.nextInt(years.length)];
     notifyListeners();
   }
 

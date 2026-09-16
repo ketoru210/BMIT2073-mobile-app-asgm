@@ -8,6 +8,7 @@ import '../state/app_state.dart';
 import '../ui/palette.dart';
 import '../widgets/app_card.dart';
 import '../widgets/icon_chip.dart';
+import '../widgets/shake_analysis_card.dart';
 
 /// Home tab: greeting, hero CTA, stat cards and quick analysis shortcuts.
 class HomePage extends StatelessWidget {
@@ -96,6 +97,9 @@ class HomePage extends StatelessWidget {
                   onStartAnalysis();
                 },
               ),
+              const SizedBox(height: 10),
+              // Owned by A; everything it does lives in the widget.
+              const ShakeAnalysisCard(),
             ],
           ),
         );
