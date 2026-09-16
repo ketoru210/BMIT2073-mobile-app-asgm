@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/gdp_repository.dart';
+import '../data/location_service.dart';
+import '../data/state_locator.dart';
 import '../models/analysis_request.dart';
 import '../models/sector.dart';
 import '../state/app_state.dart';
@@ -210,6 +212,10 @@ class _StateSectionCard extends StatelessWidget {
             borderColor: Palette.border,
             onTap: () => _pickState(context, isA: true),
           ),
+          const SizedBox(height: 8),
+          // Only State A: "my location" answers where the user is, and
+          // State B is whoever they are comparing themselves against.
+          _UseMyLocationButton(onLocated: app.selectStateA),
           if (withToggle) ...[
             const SizedBox(height: 18),
             Row(
@@ -279,6 +285,110 @@ class _StateSectionCard extends StatelessWidget {
     } else {
       app.selectStateB(picked);
     }
+  }
+}
+
+/// Fills the State A row from the device's GPS, so a user analysing
+/// their own state does not have to find it in a list of sixteen.
+///
+/// Uses the same [LocationService] and [StateLocator] as the grants
+/// Browse page; the rule for turning a fix into a state lives there and
+/// is not repeated here.
+class _UseMyLocationButton extends StatefulWidget {
+  const _UseMyLocationButton({required this.onLocated});
+
+  /// Called with the canonical state name once a fix resolves to one.
+  final ValueChanged<String> onLocated;
+
+  @override
+  State<_UseMyLocationButton> createState() => _UseMyLocationButtonState();
+}
+
+class _UseMyLocationButtonState extends State<_UseMyLocationButton> {
+  bool _busy = false;
+
+  /// Loaded on the first tap and kept: the centroid list never changes.
+  StateLocator? _locator;
+
+  Future<void> _locate() async {
+    setState(() => _busy = true);
+    final result = await context.read<AppState>().location.current();
+    final locator = _locator ??= await StateLocator.load();
+    if (!mounted) return;
+
+    final point = result.point;
+    final state = point == null ? null : locator.nearest(point);
+    setState(() => _busy = false);
+    if (state == null) {
+      _say(_failureMessage(result.failure));
+      return;
+    }
+    widget.onLocated(state);
+    // The row may already have said this state, so say it out loud
+    // rather than leaving a tap that looks like it did nothing.
+    _say('Located you in $state.');
+  }
+
+  /// Why the fix did not happen, in the user's words. A fix that arrived
+  /// but landed outside the country is the `null` case.
+  String _failureMessage(LocationFailure? failure) {
+    switch (failure) {
+      case LocationFailure.permissionDenied:
+        return 'Location permission denied.';
+      case LocationFailure.serviceDisabled:
+        return 'Turn on location to use this.';
+      case LocationFailure.noFix:
+        return 'Could not get a location fix.';
+      case null:
+        return 'You do not appear to be in Malaysia.';
+    }
+  }
+
+  void _say(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: GestureDetector(
+        onTap: _busy ? null : _locate,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // the spinner takes the icon's place so the row never
+            // changes width mid-tap
+            SizedBox(
+              width: 13,
+              height: 13,
+              child: _busy
+                  ? const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Palette.primary,
+                    )
+                  : const Icon(
+                      Icons.near_me_outlined,
+                      size: 13,
+                      color: Palette.primary,
+                    ),
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              'Use my location',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Palette.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
