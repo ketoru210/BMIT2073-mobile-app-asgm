@@ -10,6 +10,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/back_chevron.dart';
 import 'detail_page.dart';
 import 'my_applications_page.dart';
+import 'reminder_card.dart';
 
 /// Grants · Browse — the user-facing entry point into F6.
 ///
@@ -70,6 +71,19 @@ class _BrowsePageState extends State<BrowsePage> {
       if (widget.sector != null) widget.sector!.label,
     ];
     return parts.join(' · ');
+  }
+
+  /// A reminder is offered when the list is narrowed to a full state and
+  /// sector pair and nothing in it is aimed at exactly that pair.
+  ///
+  /// Nationwide and any-sector grants still list, but do not count: one
+  /// such grant is open to every pair, and would otherwise hide the
+  /// reminder everywhere.
+  bool _offersReminder(List<Grant> grants) {
+    final state = widget.state;
+    final sector = widget.sector;
+    if (!_filtered || state == null || sector == null) return false;
+    return !grants.any((g) => g.state == state && g.sector == sector);
   }
 
   @override
@@ -137,29 +151,37 @@ class _BrowsePageState extends State<BrowsePage> {
                   );
                 }
                 final grants = snapshot.data!;
-                if (grants.isEmpty) {
-                  return _EmptyState(
-                    filtered: _filtered && _hasContext,
-                    label: _contextLabel,
-                  );
-                }
                 return Column(
                   children: [
-                    for (final grant in grants) ...[
-                      _GrantRow(
-                        grant: grant,
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => DetailPage(
-                              grant: grant,
-                              state: widget.state,
-                              sector: widget.sector,
+                    if (_offersReminder(grants)) ...[
+                      GrantReminderCard(
+                        state: widget.state!,
+                        sector: widget.sector!,
+                        label: _contextLabel,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (grants.isEmpty)
+                      _EmptyState(
+                        filtered: _filtered && _hasContext,
+                        label: _contextLabel,
+                      )
+                    else
+                      for (final grant in grants) ...[
+                        _GrantRow(
+                          grant: grant,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => DetailPage(
+                                grant: grant,
+                                state: widget.state,
+                                sector: widget.sector,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
+                        const SizedBox(height: 10),
+                      ],
                   ],
                 );
               },
