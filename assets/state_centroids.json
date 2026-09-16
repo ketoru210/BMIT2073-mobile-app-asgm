@@ -1,0 +1,18 @@
+[
+  { "state": "Johor", "lat": 1.95, "lon": 103.35 },
+  { "state": "Kedah", "lat": 6.05, "lon": 100.65 },
+  { "state": "Kelantan", "lat": 5.35, "lon": 102.05 },
+  { "state": "Melaka", "lat": 2.25, "lon": 102.35 },
+  { "state": "Negeri Sembilan", "lat": 2.75, "lon": 102.15 },
+  { "state": "Pahang", "lat": 3.75, "lon": 102.55 },
+  { "state": "Perak", "lat": 4.65, "lon": 101.1 },
+  { "state": "Perlis", "lat": 6.5, "lon": 100.25 },
+  { "state": "Pulau Pinang", "lat": 5.35, "lon": 100.3 },
+  { "state": "Sabah", "lat": 5.35, "lon": 116.9 },
+  { "state": "Sarawak", "lat": 2.5, "lon": 113.0 },
+  { "state": "Selangor", "lat": 3.3, "lon": 101.45 },
+  { "state": "Terengganu", "lat": 4.9, "lon": 103.0 },
+  { "state": "W.P. Kuala Lumpur", "lat": 3.14, "lon": 101.69, "radiusKm": 15 },
+  { "state": "W.P. Labuan", "lat": 5.28, "lon": 115.23, "radiusKm": 15 },
+  { "state": "W.P. Putrajaya", "lat": 2.93, "lon": 101.69, "radiusKm": 6 }
+]
