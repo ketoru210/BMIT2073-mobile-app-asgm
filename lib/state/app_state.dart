@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../data/gdp_repository.dart';
 import '../data/grant_reminder_repository.dart';
 import '../data/grant_repository.dart';
+import '../data/location_service.dart';
 import '../data/notification_service.dart';
 import '../data/policy_source.dart';
 import '../data/user_repository.dart';
@@ -27,6 +28,7 @@ class AppState extends ChangeNotifier {
     required this.grants,
     required this.reminders,
     required this.notifications,
+    required this.location,
   }) {
     _catalogue = catalogue;
   }
@@ -59,6 +61,10 @@ class AppState extends ChangeNotifier {
 
   /// Shows the system notification when a reminder is fulfilled.
   final NotificationService notifications;
+
+  /// Device location, used by the Browse page to narrow grants to the
+  /// state the user is standing in.
+  final LocationService location;
 
   /// Launch, sign-in and resume can land on top of each other; this stops
   /// two overlapping checks from notifying about the same grant.

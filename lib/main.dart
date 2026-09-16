@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/gdp_repository.dart';
+import 'data/location_service.dart';
 import 'data/notification_service.dart';
 import 'data/policy_source.dart';
 import 'data/supabase_grant_reminder_repository.dart';
@@ -41,6 +42,7 @@ Future<void> main() async {
     grants: SupabaseGrantRepository(),
     reminders: SupabaseGrantReminderRepository(),
     notifications: notifications,
+    location: DeviceLocationService(),
   );
   await app.init();
 

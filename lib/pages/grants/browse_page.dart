@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/grant_eligibility.dart';
+import '../../data/location_service.dart';
+import '../../data/state_locator.dart';
 import '../../models/grant.dart';
 import '../../models/sector.dart';
 import '../../state/app_state.dart';
@@ -35,7 +37,21 @@ class _BrowsePageState extends State<BrowsePage> {
   late bool _filtered;
   late Future<List<Grant>> _future;
 
-  bool get _hasContext => widget.state != null || widget.sector != null;
+  /// The state the device was last found in, or null while the page is
+  /// running on the analysis context it was opened with.
+  String? _locatedState;
+  bool _locating = false;
+
+  /// Loaded on the first "Near me" tap and kept for the rest of the page's
+  /// life; the centroid list never changes.
+  StateLocator? _locator;
+
+  /// The state every part of this page works from: a location fix wins
+  /// over the context the page was opened with, so the reminder card, the
+  /// empty state and the apply form all follow the user's position.
+  String? get _state => _locatedState ?? widget.state;
+
+  bool get _hasContext => _state != null || widget.sector != null;
 
   @override
   void initState() {
@@ -51,7 +67,7 @@ class _BrowsePageState extends State<BrowsePage> {
   void _load() {
     final grants = context.read<AppState>().grants;
     _future = _filtered
-        ? grants.available(state: widget.state, sector: widget.sector)
+        ? grants.available(state: _state, sector: widget.sector)
         : grants.available();
   }
 
@@ -65,9 +81,63 @@ class _BrowsePageState extends State<BrowsePage> {
     });
   }
 
+  /// Takes a fix, resolves it to a state, and narrows the list to it.
+  /// A second tap hands the page back to its original context.
+  ///
+  /// Every failure is a snackbar and nothing else: a user who cannot be
+  /// located still has the list they came in with.
+  Future<void> _nearMe() async {
+    if (_locatedState != null) {
+      setState(() {
+        _locatedState = null;
+        _filtered = widget.state != null || widget.sector != null;
+        _load();
+      });
+      return;
+    }
+
+    setState(() => _locating = true);
+    final result = await context.read<AppState>().location.current();
+    final locator = _locator ??= await StateLocator.load();
+    if (!mounted) return;
+
+    final point = result.point;
+    final state = point == null ? null : locator.nearest(point);
+    setState(() {
+      _locating = false;
+      if (state != null) {
+        _locatedState = state;
+        _filtered = true;
+        _load();
+      }
+    });
+    if (state == null) _say(_failureMessage(result.failure));
+  }
+
+  /// Why the fix did not happen, in the user's words. A fix that arrived
+  /// but landed outside the country is the `null` case.
+  String _failureMessage(LocationFailure? failure) {
+    switch (failure) {
+      case LocationFailure.permissionDenied:
+        return 'Location permission denied.';
+      case LocationFailure.serviceDisabled:
+        return 'Turn on location to use this.';
+      case LocationFailure.noFix:
+        return 'Could not get a location fix.';
+      case null:
+        return 'You do not appear to be in Malaysia.';
+    }
+  }
+
+  void _say(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   String get _contextLabel {
     final parts = <String>[
-      if (widget.state != null) widget.state!,
+      if (_state != null) _state!,
       if (widget.sector != null) widget.sector!.label,
     ];
     return parts.join(' · ');
@@ -80,7 +150,7 @@ class _BrowsePageState extends State<BrowsePage> {
   /// such grant is open to every pair, and would otherwise hide the
   /// reminder everywhere.
   bool _offersReminder(List<Grant> grants) {
-    final state = widget.state;
+    final state = _state;
     final sector = widget.sector;
     if (!_filtered || state == null || sector == null) return false;
     return !grants.any((g) => g.state == state && g.sector == sector);
@@ -134,12 +204,27 @@ class _BrowsePageState extends State<BrowsePage> {
               ],
             ),
             const SizedBox(height: 16),
-            if (_hasContext)
-              _ContextBar(
-                filtered: _filtered,
-                label: _contextLabel,
-                onToggle: _toggleFilter,
-              ),
+            Row(
+              children: [
+                if (_hasContext)
+                  Expanded(
+                    child: _ContextBar(
+                      filtered: _filtered,
+                      located: _locatedState != null,
+                      label: _contextLabel,
+                      onToggle: _toggleFilter,
+                    ),
+                  )
+                else
+                  const Spacer(),
+                const SizedBox(width: 10),
+                _NearMeButton(
+                  active: _locatedState != null,
+                  busy: _locating,
+                  onTap: _locating ? null : _nearMe,
+                ),
+              ],
+            ),
             const SizedBox(height: 14),
             FutureBuilder<List<Grant>>(
               future: _future,
@@ -155,7 +240,7 @@ class _BrowsePageState extends State<BrowsePage> {
                   children: [
                     if (_offersReminder(grants)) ...[
                       GrantReminderCard(
-                        state: widget.state!,
+                        state: _state!,
                         sector: widget.sector!,
                         label: _contextLabel,
                       ),
@@ -174,7 +259,7 @@ class _BrowsePageState extends State<BrowsePage> {
                             MaterialPageRoute<void>(
                               builder: (_) => DetailPage(
                                 grant: grant,
-                                state: widget.state,
+                                state: _state,
                                 sector: widget.sector,
                               ),
                             ),
@@ -198,11 +283,16 @@ class _BrowsePageState extends State<BrowsePage> {
 class _ContextBar extends StatelessWidget {
   const _ContextBar({
     required this.filtered,
+    required this.located,
     required this.label,
     required this.onToggle,
   });
 
   final bool filtered;
+
+  /// True when [label] describes where the device is rather than where
+  /// the user drilled in from; only the icon changes.
+  final bool located;
   final String label;
   final VoidCallback onToggle;
 
@@ -220,8 +310,8 @@ class _ContextBar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.filter_alt_rounded,
+                Icon(
+                  located ? Icons.my_location : Icons.filter_alt_rounded,
                   size: 14,
                   color: Palette.periText,
                 ),
@@ -255,6 +345,59 @@ class _ContextBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The control that swaps the analysis context for the device's own
+/// state, and swaps it back.
+class _NearMeButton extends StatelessWidget {
+  const _NearMeButton({
+    required this.active,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final bool active;
+  final bool busy;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = active ? Colors.white : Palette.periText;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: active ? Palette.primary : Palette.chipPeri,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // the spinner takes the icon's place so the pill never
+            // changes width mid-tap
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: busy
+                  ? CircularProgressIndicator(strokeWidth: 2, color: foreground)
+                  : Icon(Icons.near_me_outlined, size: 14, color: foreground),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              active ? 'Located' : 'Near me',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: foreground,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

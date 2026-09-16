@@ -14,6 +14,7 @@ import 'package:bmit2073_asgm/models/grant.dart';
 import 'package:bmit2073_asgm/models/sector.dart';
 import 'package:bmit2073_asgm/state/app_state.dart';
 
+import 'fake_location_service.dart';
 import 'fake_notification_service.dart';
 
 void main() {
@@ -43,6 +44,7 @@ void main() {
       grants: LocalGrantRepository(),
       reminders: reminders,
       notifications: notifications,
+      location: FakeLocationService.at(6.44, 100.20),
     );
   });
 

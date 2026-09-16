@@ -12,6 +12,7 @@ import 'package:bmit2073_asgm/data/user_repository.dart';
 import 'package:bmit2073_asgm/main.dart';
 import 'package:bmit2073_asgm/state/app_state.dart';
 
+import 'fake_location_service.dart';
 import 'fake_notification_service.dart';
 
 void main() {
@@ -30,6 +31,7 @@ void main() {
       grants: LocalGrantRepository(),
       reminders: LocalGrantReminderRepository(),
       notifications: FakeNotificationService(),
+      location: FakeLocationService.at(6.44, 100.20),
     );
     // Asset loading and shared_preferences do real async I/O, which the
     // fake-async test zone blocks on — run init in the real async zone.

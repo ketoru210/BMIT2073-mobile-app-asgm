@@ -16,6 +16,7 @@ import 'package:bmit2073_asgm/models/sector.dart';
 import 'package:bmit2073_asgm/pages/grants/browse_page.dart';
 import 'package:bmit2073_asgm/state/app_state.dart';
 
+import 'fake_location_service.dart';
 import 'fake_notification_service.dart';
 
 void main() {
@@ -40,6 +41,7 @@ void main() {
       grants: LocalGrantRepository(),
       reminders: LocalGrantReminderRepository(),
       notifications: FakeNotificationService(),
+      location: FakeLocationService.at(6.44, 100.20),
     );
     return ChangeNotifierProvider<AppState>.value(
       value: app,

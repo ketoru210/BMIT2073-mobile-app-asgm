@@ -20,6 +20,7 @@ import 'package:bmit2073_asgm/pages/grants/browse_page.dart';
 import 'package:bmit2073_asgm/state/app_state.dart';
 import 'package:bmit2073_asgm/widgets/toggle_switch.dart';
 
+import 'fake_location_service.dart';
 import 'fake_notification_service.dart';
 
 void main() {
@@ -76,6 +77,7 @@ void main() {
       notifications: FakeNotificationService(
         permissionGranted: permissionGranted,
       ),
+      location: FakeLocationService.at(6.44, 100.20),
     );
     await tester.runAsync(() async {
       await tester.pumpWidget(
