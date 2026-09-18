@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:camera/camera.dart';
 
 import '../data/supabase_user_repository.dart';
 import '../models/saved_analysis.dart';
@@ -10,6 +11,7 @@ import '../ui/palette.dart';
 import '../widgets/app_card.dart';
 import '../widgets/back_chevron.dart';
 import '../widgets/section_label.dart';
+import 'camera_page.dart';
 import 'login_page.dart';
 import 'feedback_page.dart';
 import 'feedback_admin_page.dart';
@@ -49,14 +51,45 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 28),
-                const Center(
-                  child: CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Palette.chipPeri,
-                    child: Icon(
-                      Icons.person_outline_rounded,
-                      color: Palette.periText,
-                      size: 34,
+                Center(
+                  child: GestureDetector(
+                    onTap: signedIn ? () => _handleAvatarTap(context, app, users) : null,
+                    child: (!signedIn || users.avatarPath == null)
+                        ? const CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Palette.chipPeri,
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        color: Palette.periText,
+                        size: 34,
+                      ),
+                    )
+                        : FutureBuilder<String?>(
+                      key: ValueKey(users.avatarPath),
+                      future: users.avatarUrl(),
+                      builder: (context, snapshot) {
+                        final url = snapshot.data;
+                        if (url == null) {
+                          return const CircleAvatar(
+                            radius: 32,
+                            backgroundColor: Palette.chipPeri,
+                            child: Icon(
+                              Icons.person_outline_rounded,
+                              color: Palette.periText,
+                              size: 34,
+                            ),
+                          );
+                        }
+                        return Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.rotationY(3.14159),
+                          child: CircleAvatar(
+                            radius: 32,
+                            backgroundColor: Palette.chipPeri,
+                            backgroundImage: NetworkImage(url),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -202,6 +235,78 @@ class ProfilePage extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _handleAvatarTap(
+      BuildContext context,
+      AppState app,
+      SupabaseUserRepository users,
+      ) async {
+    final hasAvatar = users.avatarPath != null;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Palette.card,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.camera_alt_outlined,
+                color: Palette.primary,
+              ),
+              title: Text(hasAvatar ? 'Change avatar' : 'Upload avatar'),
+              onTap: () => Navigator.pop(context, 'capture'),
+            ),
+            if (hasAvatar)
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: Palette.riskText,
+                ),
+                title: const Text('Delete avatar'),
+                onTap: () => Navigator.pop(context, 'delete'),
+              ),
+            ListTile(
+              leading: const Icon(Icons.close, color: Palette.muted),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context, null),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (action == 'capture') {
+      final file = await Navigator.of(context).push<XFile>(
+        MaterialPageRoute<XFile>(builder: (_) => const CameraPage()),
+      );
+      if (file == null) return;
+      try {
+        await users.setAvatar(file);
+        app.profileChanged();
+      } catch (e) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to update avatar.')),
+        );
+      }
+    } else if (action == 'delete') {
+      try {
+        await users.removeAvatar();
+        app.profileChanged();
+      } catch (e) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to delete avatar.')),
+        );
+      }
+    }
   }
 
   String _roleLabel(UserRole role) {
