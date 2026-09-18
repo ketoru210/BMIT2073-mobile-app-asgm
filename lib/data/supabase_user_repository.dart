@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/saved_analysis.dart';
@@ -10,6 +11,7 @@ class SupabaseUserRepository implements UserRepository {
   final SupabaseClient _client;
   String? _nickname;
   UserRole _role = UserRole.user;
+  String? _avatarPath;
 
   @override
   Future<void> init({bool useRemote = false}) async {
@@ -25,16 +27,18 @@ class SupabaseUserRepository implements UserRepository {
   Future<void> _loadProfile(String id) async {
     final response = await _client
         .from('profiles')
-        .select('nickname, role')
+        .select('nickname, role, avatar_path')
         .eq('id', id)
         .maybeSingle();
     if (response == null) {
       _nickname = null;
       _role = UserRole.user;
+      _avatarPath = null;
       return;
     }
     _nickname = response['nickname'] as String?;
     final roleName = response['role'] as String?;
+    _avatarPath = response['avatar_path'] as String?;
     _role = UserRole.values.firstWhere(
           (role) => role.name == roleName,
       orElse: () => UserRole.user,
@@ -64,6 +68,9 @@ class SupabaseUserRepository implements UserRepository {
 
   @override
   UserRole get role => _role;
+
+  @override
+  String? get avatarPath => _avatarPath;
 
   @override
   Future<List<SavedAnalysis>> favorites() async {
@@ -107,6 +114,49 @@ class SupabaseUserRepository implements UserRepository {
         .eq('id', id);
   }
 
+  @override
+  Future<String?> avatarUrl() async {
+    final path = _avatarPath;
+    if (path == null) return null;
+    return _client.storage.from('avatars').createSignedUrl(path, 3600);
+  }
+
+  @override
+  Future<void> setAvatar(XFile file) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw StateError('You must be signed in to set an avatar.');
+
+    final oldPath = _avatarPath;
+    if (oldPath != null) {
+      try {
+        await _client.storage.from('avatars').remove([oldPath]);
+      } catch (_) {}
+    }
+
+    final newPath =
+        '${user.id}/avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final bytes = await file.readAsBytes();
+    await _client.storage.from('avatars').uploadBinary(
+      newPath,
+      bytes,
+      fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+    );
+
+    await _client.rpc('set_avatar_path', params: {'new_path': newPath});
+    _avatarPath = newPath;
+  }
+
+  @override
+  Future<void> removeAvatar() async {
+    final path = _avatarPath;
+    if (path == null) return;
+    try {
+      await _client.storage.from('avatars').remove([path]);
+    } catch (_) {}
+    await _client.rpc('clear_avatar_path');
+    _avatarPath = null;
+  }
+
   Future<AuthResponse> signIn({
     required String email,
     required String password,
@@ -146,6 +196,7 @@ class SupabaseUserRepository implements UserRepository {
     await _client.auth.signOut();
     _nickname = null;
     _role = UserRole.user;
+    _avatarPath = null;
   }
 
   bool get isSignedIn => _client.auth.currentUser != null;

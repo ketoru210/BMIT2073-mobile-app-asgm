@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:camera/camera.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/grant.dart';
@@ -19,6 +20,10 @@ abstract class UserRepository {
   Future<List<SavedAnalysis>> favorites();
   Future<void> saveFavorite(SavedAnalysis a);
   Future<void> removeFavorite(String id);
+  String? get avatarPath;
+  Future<String?> avatarUrl();
+  Future<void> setAvatar(XFile file);
+  Future<void> removeAvatar();
 }
 
 /// Offline implementation backed by SharedPreferences.
@@ -39,6 +44,7 @@ class LocalUserRepository implements UserRepository {
   String? _nickname;
   UserRole _role = UserRole.user;
   List<SavedAnalysis> _favorites = [];
+  String? _avatarPath;
 
   @override
   Future<void> init({bool useRemote = false}) async {
@@ -80,6 +86,9 @@ class LocalUserRepository implements UserRepository {
 
   @override
   UserRole get role => _role;
+
+  @override
+  String? get avatarPath => _avatarPath;
 
   /// Debug-only role switch so the grants flow can be exercised as both
   /// user and admin without a login. Once the Supabase implementation is
@@ -124,5 +133,18 @@ class LocalUserRepository implements UserRepository {
       _favorites.map((item) => item.toJson()).toList(),
     );
     await _prefs?.setString(_favoritesKey, encoded);
+  }
+
+  @override
+  Future<String?> avatarUrl() async => null;
+
+  @override
+  Future<void> setAvatar(XFile file) async {
+    _avatarPath = file.path;
+  }
+
+  @override
+  Future<void> removeAvatar() async {
+    _avatarPath = null;
   }
 }
